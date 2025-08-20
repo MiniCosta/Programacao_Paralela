@@ -19,7 +19,7 @@ double get_time() {
 }
 #endif
 
-#define N 1000000000
+#define N 100000000L
 
 int main() {
     double start, end;
@@ -31,7 +31,7 @@ int main() {
 
     // 1) Inicialização simples
     start = get_time();
-    for (int i = 0; i < N; i++) {
+    for (long i = 0; i < N; i++) {
         v[i] = i * 0.5 + 1.0;
     }
     end = get_time();
@@ -40,7 +40,7 @@ int main() {
     // 2) Soma acumulativa (dependência entre iterações)
     double acc = 0.0;
     start = get_time();
-    for (int i = 0; i < N; i++) {
+    for (long i = 0; i < N; i++) {
         acc += v[i];
     }
     end = get_time();
@@ -49,7 +49,7 @@ int main() {
     // 3) Soma com múltiplas variáveis (quebra dependência)
     double acc0 = 0.0, acc1 = 0.0, acc2 = 0.0, acc3 = 0.0;
     start = get_time();
-    int i;
+    long i;
     for (i = 0; i <= N - 4; i += 4) {
         acc0 += v[i];
         acc1 += v[i+1];

@@ -120,7 +120,7 @@ void run_test(int size) {
     printf("\n");
     printf("=====================================================\n");
     printf("           TESTE COM MATRIZ %dx%d\n", size, size);
-    printf("=====================================================");
+    printf("=====================================================\n");
     
     // Alocar memoria
     double *matrix = allocate_matrix(size, size);
@@ -147,6 +147,7 @@ void run_test(int size) {
     }
     
     // Exibir tempos de forma organizada
+    printf("\nTEMPOS DE EXECUCAO:\n");
     printf("-----------------------------------------------------\n");
     printf("                    | Wall Time\n");
     printf("-----------------------------------------------------\n");
@@ -155,13 +156,22 @@ void run_test(int size) {
     printf("-----------------------------------------------------\n");
     
     // Calcular speedups
+    printf("\nANALISE DE PERFORMANCE:\n");
     if (wall_time_cols > 0 && wall_time_rows > 0) {
         double wall_speedup = wall_time_cols / wall_time_rows;
-        printf("Wall Time Speedup: ", wall_speedup);
+        printf("Speedup: %.2fx - ", wall_speedup);
         if (wall_speedup > 1.0) {
             printf("linhas %.2fx mais rapido\n", wall_speedup);
         } else {
             printf("colunas %.2fx mais rapido\n", 1.0/wall_speedup);
+        }
+        
+        // Adicionar análise mais detalhada
+        double diff_percent = fabs(wall_speedup - 1.0) * 100.0;
+        if (diff_percent > 10.0) {
+            printf("Diferenca significativa: %.1f%%\n", diff_percent);
+        } else {
+            printf("Diferenca pequena: %.1f%%\n", diff_percent);
         }
     }
     
@@ -185,12 +195,6 @@ int main() {
     for (int i = 0; i < num_tests; i++) {
         run_test(sizes[i]);
     }
-    
-    // printf("\n=== Analise ===\n");
-    // printf("O acesso por linhas geralmente e mais eficiente devido a:\n");
-    // printf("- Localidade espacial: elementos consecutivos na memoria sao acessados sequencialmente\n");
-    // printf("- Melhor uso do cache: reduz cache misses\n");
-    // printf("- Padrao de acesso mais amigavel a arquitetura da CPU\n");
     
     return 0;
 }
