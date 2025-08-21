@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tarefa 2 - Paralelismo ao Nível de Instrução (ILP)</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      h1 {
+        color: #2c3e50;
+        border-bottom: 3px solid #e74c3c;
+        padding-bottom: 10px;
+        margin-bottom: 30px;
+      }
+
+      h2 {
+        color: #34495e;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        padding-left: 10px;
+        border-left: 4px solid #e74c3c;
+      }
+
+      h3 {
+        color: #c0392b;
+        margin-top: 25px;
+      }
+
+      p {
+        text-align: justify;
+        margin-bottom: 15px;
+      }
+
+      .highlight {
+        background-color: #fdf2e9;
+        border-left: 4px solid #e74c3c;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+
+      .theory-box {
+        background-color: #eaf2f8;
+        border: 1px solid #3498db;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      .code-example {
+        background-color: #f4f4f4;
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+        font-family: "Courier New", monospace;
+        overflow-x: auto;
+      }
+
+      .loop-analysis {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 8px;
+      }
+
+      .performance-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+
+      .performance-table th,
+      .performance-table td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: center;
+      }
+
+      .performance-table th {
+        background-color: #e74c3c;
+        color: white;
+      }
+
+      .performance-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      ul {
+        margin-left: 20px;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      .footer {
+        margin-top: 50px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .optimization-box {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      .warning-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      @media print {
+        body {
+          max-width: none;
+          margin: 0;
+          padding: 15px;
+        }
+
+        .page-break {
+          page-break-before: always;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Investigando Paralelismo ao Nível de Instrução (ILP) em C</h1>
+
+    <h2>🎯 Objetivo</h2>
+
+    <p>
+      Esta atividade tem como objetivo investigar os efeitos do
+      <strong>paralelismo ao nível de instrução (ILP)</strong> em programas C,
+      analisando como dependências entre iterações afetam o desempenho dos laços
+      sob diferentes níveis de otimização do compilador.
+    </p>
+
+    <div class="highlight">
+      <p>
+        <strong>Meta principal:</strong> Compreender como o compilador explora
+        paralelismo interno e como dependências de dados podem limitar ou
+        facilitar essas otimizações, especialmente em operações vetoriais e
+        loops computacionalmente intensivos.
+      </p>
+    </div>
+
+    <h2>📚 Teoria</h2>
+
+    <div class="theory-box">
+      <p>
+        O <strong>paralelismo ao nível de instrução (ILP)</strong> refere-se à
+        capacidade dos processadores modernos de executar múltiplas instruções
+        simultaneamente, desde que não haja dependências de dados entre elas. O
+        compilador pode explorar ILP reordenando instruções e utilizando
+        recursos internos do processador, mas dependências no código podem
+        limitar esse paralelismo.
+      </p>
+    </div>
+
+    <h3>🔗 Tipos de Dependência</h3>
+
+    <ul>
+      <li>
+        <strong>Dependência de dados (RAW - Read After Write):</strong> Uma
+        instrução precisa do resultado de outra anterior
+      </li>
+      <li>
+        <strong>Dependência anti (WAR - Write After Read):</strong> Uma
+        instrução escreve em um local que será lido por outra
+      </li>
+      <li>
+        <strong>Dependência de saída (WAW - Write After Write):</strong> Duas
+        instruções escrevem no mesmo local
+      </li>
+    </ul>
+
+    <h3>🛠️ Técnicas de Otimização do Compilador</h3>
+
+    <div class="optimization-box">
+      <ul>
+        <li>
+          <strong>Vetorização SIMD:</strong> Uso de instruções que processam
+          múltiplos dados simultaneamente
+        </li>
+        <li>
+          <strong>Loop Unrolling:</strong> Desenrolar loops para reduzir
+          overhead de controle
+        </li>
+        <li>
+          <strong>Instruction Scheduling:</strong> Reordenação de instruções
+          para maximizar paralelismo
+        </li>
+        <li>
+          <strong>Register Allocation:</strong> Otimização do uso de
+          registradores
+        </li>
+      </ul>
+    </div>
+
+    <h2>🧪 Experimentos Implementados</h2>
+
+    <p>
+      Nesta atividade, três laços são implementados para ilustrar diferentes
+      cenários de dependência:
+    </p>
+
+    <h3>1️⃣ Inicialização de Vetor (Sem Dependências)</h3>
+
+    <div class="loop-analysis">
+      <div class="code-example">
+        for (long i = 0; i < N; i++) {<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;vector[i] = i * 0.5 + 1.0;<br />
+        }
+      </div>
+
+      <p><strong>Características:</strong></p>
+      <ul>
+        <li>Cada elemento do vetor é inicializado de forma independente</li>
+        <li>Não há dependência entre iterações</li>
+        <li>O compilador pode paralelizar e otimizar facilmente este loop</li>
+        <li>Permite vetorização SIMD eficiente</li>
+      </ul>
+
+      <div class="warning-box">
+        <p>
+          <strong>Gargalo:</strong> Limitado pela largura de banda da memória
+          (memory bandwidth) para escrita, especialmente em vetores grandes.
+        </p>
+      </div>
+    </div>
+
+    <h3>2️⃣ Soma Acumulativa (Com Dependência)</h3>
+
+    <div class="loop-analysis">
+      <div class="code-example">
+        double sum_sequential = 0.0;<br />
+        for (long i = 0; i < N; i++) {<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;sum_sequential += vector[i];<br />
+        }
+      </div>
+
+      <p><strong>Características:</strong></p>
+      <ul>
+        <li>
+          Os elementos do vetor são somados sequencialmente em uma única
+          variável acumuladora
+        </li>
+        <li>
+          <strong>Forte dependência entre iterações:</strong> cada soma depende
+          do resultado anterior
+        </li>
+        <li>Limita significativamente o paralelismo disponível</li>
+        <li>O compilador pode aplicar vetorização limitada</li>
+      </ul>
+
+      <div class="warning-box">
+        <p>
+          <strong>Limitação:</strong> A dependência sequencial força
+          serialização parcial, impedindo paralelismo total mesmo com
+          otimizações agressivas.
+        </p>
+      </div>
+    </div>
+
+    <h3>3️⃣ Soma com Múltiplos Acumuladores (Quebra de Dependência)</h3>
+
+    <div class="loop-analysis">
+      <div class="code-example">
+        double sum0 = 0.0, sum1 = 0.0, sum2 = 0.0, sum3 = 0.0;<br />
+        for (long i = 0; i <= N - 4; i += 4) {<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;sum0 += vector[i];<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;sum1 += vector[i+1];<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;sum2 += vector[i+2];<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;sum3 += vector[i+3];<br />
+        }<br />
+        double sum_parallel = sum0 + sum1 + sum2 + sum3;
+      </div>
+
+      <p><strong>Características:</strong></p>
+      <ul>
+        <li>A soma é dividida entre múltiplas variáveis acumuladoras</li>
+        <li>Reduz drasticamente as dependências entre iterações</li>
+        <li>Permite ao compilador explorar mais ILP e paralelismo interno</li>
+        <li>Facilita vetorização SIMD eficiente</li>
+        <li>Aproveita múltiplas unidades funcionais da CPU</li>
+      </ul>
+
+      <div class="optimization-box">
+        <p>
+          <strong>Vantagem:</strong> Loop unrolling manual combinado com quebra
+          de dependência permite ao compilador aplicar otimizações agressivas,
+          resultando em speedups significativos.
+        </p>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>🔬 Procedimento Experimental</h2>
+
+    <ol>
+      <li>
+        <strong>Implementar os três loops em C</strong> conforme descrito acima
+      </li>
+      <li>
+        <strong
+          >Compilar o programa com diferentes níveis de otimização:</strong
+        >
+        <ul>
+          <li><code>-O0</code>: Sem otimizações (baseline)</li>
+          <li><code>-O2</code>: Otimizações moderadas</li>
+          <li>
+            <code>-O3</code>: Otimizações agressivas, incluindo vetorização e
+            paralelismo
+          </li>
+        </ul>
+      </li>
+      <li>
+        <strong>Medir e comparar os tempos de execução</strong> de cada loop em
+        cada nível de otimização
+      </li>
+      <li>
+        <strong>Analisar os resultados</strong> e identificar padrões de
+        performance
+      </li>
+    </ol>
+
+    <h2>📊 Análise de Resultados Esperados</h2>
+
+    <table class="performance-table">
+      <thead>
+        <tr>
+          <th>Loop</th>
+          <th>-O0 (Baseline)</th>
+          <th>-O2 (Moderado)</th>
+          <th>-O3 (Agressivo)</th>
+          <th>Speedup Esperado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Inicialização</strong></td>
+          <td>Lento</td>
+          <td>Rápido</td>
+          <td>Muito Rápido</td>
+          <td>Alto (5-10x)</td>
+        </tr>
+        <tr>
+          <td><strong>2. Soma Simples</strong></td>
+          <td>Lento</td>
+          <td>Médio</td>
+          <td>Rápido</td>
+          <td>Moderado (2-4x)</td>
+        </tr>
+        <tr>
+          <td><strong>3. Soma Múltipla</strong></td>
+          <td>Lento</td>
+          <td>Rápido</td>
+          <td>Muito Rápido</td>
+          <td>Muito Alto (8-15x)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>📈 Padrões de Performance</h3>
+
+    <div class="loop-analysis">
+      <h4>🔹 Loop 1 (Inicialização):</h4>
+      <p>
+        Deve apresentar <strong>grande ganho de desempenho</strong> com
+        otimizações, pois não há dependências. O compilador pode aplicar
+        vetorização SIMD agressiva, mas será limitado pela largura de banda da
+        memória para escritas.
+      </p>
+
+      <h4>🔹 Loop 2 (Soma Acumulativa):</h4>
+      <p>
+        O ganho com otimização será <strong>limitado</strong> devido à
+        dependência sequencial entre as iterações. Mesmo com -O3, o compilador
+        não pode quebrar completamente a cadeia de dependências.
+      </p>
+
+      <h4>🔹 Loop 3 (Soma com Múltiplas Variáveis):</h4>
+      <p>
+        A quebra de dependência permite ao compilador aplicar ILP de forma
+        efetiva, resultando em <strong>desempenho superior</strong>,
+        especialmente com otimizações mais agressivas (-O3).
+      </p>
+    </div>
+
+    <h2>🧠 Conceitos Fundamentais Demonstrados</h2>
+
+    <div class="theory-box">
+      <h3>1. 🔄 Dependência de Dados vs. Paralelismo</h3>
+      <p>
+        A diferença entre os loops 2 e 3 ilustra perfeitamente como dependências
+        de dados podem ser gargalo para performance, e como técnicas simples
+        (múltiplos acumuladores) podem quebrar essas dependências.
+      </p>
+
+      <h3>2. 🚀 Poder das Otimizações do Compilador</h3>
+      <p>
+        A comparação entre -O0, -O2 e -O3 demonstra o impacto dramático das
+        otimizações automáticas do compilador, especialmente vetorização SIMD e
+        loop unrolling.
+      </p>
+
+      <h3>3. ⚖️ Trade-offs de Design</h3>
+      <p>
+        O loop 3 mostra como pequenas mudanças no código (usar 4 variáveis em
+        vez de 1) podem ter impacto dramático na performance, ilustrando a
+        importância de escrever código "amigável ao compilador".
+      </p>
+
+      <h3>4. 🏗️ Arquitetura de Processadores Modernos</h3>
+      <p>
+        Os resultados refletem características de CPUs modernas: múltiplas
+        unidades funcionais, pipelines superescalares, e instruções SIMD (SSE,
+        AVX).
+      </p>
+    </div>
+
+    <h2>💡 Lições Práticas</h2>
+
+    <div class="highlight">
+      <ul>
+        <li>
+          <strong>Evite dependências desnecessárias:</strong> Use múltiplos
+          acumuladores quando possível
+        </li>
+        <li>
+          <strong>Confie no compilador:</strong> Otimizações modernas são muito
+          eficazes quando o código permite
+        </li>
+        <li>
+          <strong>Profile antes de otimizar:</strong> Meça o impacto real das
+          diferentes abordagens
+        </li>
+        <li>
+          <strong>Entenda sua arquitetura:</strong> Diferentes CPUs podem
+          apresentar resultados distintos
+        </li>
+        <li>
+          <strong>Loop unrolling:</strong> Pode ser benéfico mesmo quando feito
+          manualmente
+        </li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      <p>
+        Programação Paralela - Tarefa 2: Análise de Paralelismo ao Nível de
+        Instrução (ILP)
+      </p>
+      <p>
+        Documento gerado automaticamente - Para conversão em PDF use: Ctrl+P →
+        Salvar como PDF
+      </p>
+    </div>
+  </body>
+</html>

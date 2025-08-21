@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tarefa 1 - Memória Cache e Row/Column Major</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      h1 {
+        color: #2c3e50;
+        border-bottom: 3px solid #3498db;
+        padding-bottom: 10px;
+        margin-bottom: 30px;
+      }
+
+      h2 {
+        color: #34495e;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        padding-left: 10px;
+        border-left: 4px solid #3498db;
+      }
+
+      h3 {
+        color: #2980b9;
+        margin-top: 25px;
+      }
+
+      p {
+        text-align: justify;
+        margin-bottom: 15px;
+      }
+
+      .highlight {
+        background-color: #f8f9fa;
+        border-left: 4px solid #e74c3c;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+
+      .analogy {
+        background-color: #ebf3fd;
+        border: 1px solid #3498db;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      .code-example {
+        background-color: #f4f4f4;
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+        font-family: "Courier New", monospace;
+        overflow-x: auto;
+      }
+
+      ul {
+        margin-left: 20px;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      .footer {
+        margin-top: 50px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .performance-box {
+        background-color: #d5edda;
+        border: 1px solid #c3e6cb;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      @media print {
+        body {
+          max-width: none;
+          margin: 0;
+          padding: 15px;
+        }
+
+        .page-break {
+          page-break-before: always;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>
+      Memória Cache, Localidade Espacial e Temporal, e Row Major vs Column Major
+      em C
+    </h1>
+
+    <h2>Memória Cache: A Memória Rápida da CPU</h2>
+
+    <p>
+      A memória cache é uma memória de pequena capacidade, extremamente rápida e
+      localizada fisicamente próxima ao processador, que armazena cópias de
+      dados e instruções frequentemente acessados da memória principal (RAM).
+      Sua existência é uma solução para o descompasso de velocidade entre a CPU,
+      que é muito rápida, e a RAM, que é comparativamente lenta. Esse
+      desequilíbrio é conhecido como <strong>"Gap de Velocidade"</strong> ou
+      <strong>"Von Neumann Bottleneck"</strong>.
+    </p>
+
+    <div class="analogy">
+      <h3>🎓 Analogia: O Estudante e a Biblioteca</h3>
+      <p>
+        Imagine a CPU como um estudante muito ávido por conhecimento (dados) e a
+        RAM como uma enorme biblioteca central. Ir até a biblioteca para buscar
+        cada livro individualmente é um processo lento. A cache age como uma
+        <strong
+          >pequena estante de livros diretamente na mesa do estudante</strong
+        >, contendo os volumes que ele mais usa ou usará em breve. Buscar um
+        livro dessa estante (cache) é quase instantâneo, enquanto uma viagem à
+        biblioteca (RAM) consome um tempo precioso.
+      </p>
+    </div>
+
+    <p>
+      A hierarquia de memória é organizada em níveis (L1, L2, L3), com a L1
+      sendo a menor e mais rápida, localizada dentro do próprio núcleo do
+      processador, e a L3 sendo maior e um pouco mais lenta, porém compartilhada
+      entre vários núcleos. O princípio fundamental por trás da eficácia da
+      cache é a <strong>localidade</strong>, que se divide em dois tipos:
+      espacial e temporal.
+    </p>
+
+    <h2>Localidade Espacial e Temporal</h2>
+
+    <h3>🔄 Localidade Temporal: A Força do Hábito</h3>
+
+    <p>
+      A localidade temporal é o princípio que rege a reutilização de dados. Ele
+      se baseia na premissa simples e poderosa de que
+      <strong
+        >se um dado foi acessado recentemente, é muito provável que ele seja
+        acessado novamente em um futuro próximo</strong
+      >.
+    </p>
+
+    <div class="analogy">
+      <p>
+        Voltando à analogia do estudante: se ele está lendo um capítulo
+        específico de um livro de cálculo, é altamente provável que ele precise
+        consultar aquele mesmo capítulo novamente para resolver os exercícios ou
+        revisar um conceito. Seria extremamente ineficiente devolver o livro à
+        biblioteca e depois ter que buscá-lo novamente minutos depois. Portanto,
+        faz todo sentido mantê-lo em sua estante pessoal (a cache) durante todo
+        o período de estudo.
+      </p>
+    </div>
+
+    <p>
+      Na computação, isso se manifesta em <strong>loops</strong>. Por exemplo, a
+      variável que controla um loop (i) é acessada, incrementada e comparada em
+      toda iteração. Graças à localidade temporal, após seu primeiro acesso, ela
+      permanece na cache L1, tornando os acessos subsequentes ordens de
+      magnitude mais rápidos.
+    </p>
+
+    <div class="highlight">
+      <p>
+        <strong>Cache Hit vs Cache Miss:</strong> A cache age com base nesse
+        princípio: quando um dado é buscado da memória principal, ele é copiado
+        para a cache. Se esse mesmo dado for solicitado novamente e ainda
+        estiver lá (um <em>acerto de cache</em>, ou cache hit), a CPU o obtém
+        imediatamente. Se não estiver (uma <em>falha de cache</em>, ou cache
+        miss), ocorre a custosa viagem à RAM.
+      </p>
+    </div>
+
+    <h3>📍 Localidade Espacial: Aproveitando a Vizinhança</h3>
+
+    <p>
+      A localidade espacial é o princípio que explora a proximidade física dos
+      dados na memória. Ele se baseia na observação de que,
+      <strong
+        >após acessar um endereço de memória, é muito provável que o programa em
+        breve precise acessar endereços adjacentes a ele</strong
+      >.
+    </p>
+
+    <div class="analogy">
+      <p>
+        Imagine que nosso estudante precise do livro "Cálculo Vol. 1". A
+        localidade espacial sugere que ele também pode precisar do "Cálculo Vol.
+        2", que provavelmente está na prateleira ao lado na biblioteca. Um
+        sistema eficiente não traria apenas o livro solicitado, mas também
+        alguns dos livros vizinhos, antecipando necessidades futuras. Dessa
+        forma, se o estudante de fato precisar do volume 2, ele já estará em sua
+        estante, poupando outra viagem.
+      </p>
+    </div>
+
+    <p>
+      Na prática, isso é exatamente o que acontece. A memória e a cache são
+      organizadas em <strong>linhas de cache</strong> (blocos de dados,
+      tipicamente de 64 bytes). Quando um programa acessa um único byte, a linha
+      de cache inteira que contém esse byte é trazida da RAM para a cache. Se o
+      programa subsequentemente acessar os bytes vizinhos (o que é extremamente
+      comum ao percorrer um array ou uma matriz linha por linha), esses dados já
+      estarão disponíveis na cache, resultando em um cache hit.
+    </p>
+
+    <div class="performance-box">
+      <h3>⚡ Impacto na Performance</h3>
+      <p>
+        O acesso a matrizes é o exemplo clássico. Percorrer uma matriz na ordem
+        em que ela está armazenada na memória (em C, row-major - linha por
+        linha) aproveita magnificamente a localidade espacial. Cada acesso à
+        memória carrega um bloco de elementos adjacentes, que são imediatamente
+        utilizados nas iterações seguintes do loop.
+      </p>
+
+      <p>
+        Por outro lado, percorrer uma matriz coluna por linha em uma linguagem
+        row-major como C viola completamente a localidade espacial. Cada acesso
+        salta para um local distante na memória, muito provavelmente em uma
+        linha de cache diferente, resultando em uma enxurrada de cache misses e
+        uma <strong>penalidade de desempenho catastrófica</strong>.
+      </p>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>Row Major vs Column Major em C</h2>
+
+    <p>
+      Em C, arrays multidimensionais são armazenados em
+      <strong>row major order</strong>, ou seja, elementos de uma mesma linha
+      estão em posições consecutivas na memória. Quando acessamos os elementos
+      linha por linha, aproveitamos a localidade espacial, pois os dados já
+      estão próximos na memória, tornando o acesso mais rápido devido ao cache.
+    </p>
+
+    <p>
+      Já no <strong>column major order</strong> (usado em outras linguagens como
+      Fortran e MATLAB), os elementos de uma mesma coluna estão próximos. Em C,
+      acessar coluna por coluna resulta em saltos maiores na memória, reduzindo
+      o aproveitamento da cache e tornando o acesso mais lento.
+    </p>
+
+    <h3>🏠 Analogia: Endereços de Casas Consecutivos</h3>
+
+    <div class="analogy">
+      <p>
+        Pense em uma matriz armazenada na memória como uma sequência de casas
+        com endereços consecutivos. No <strong>row major</strong>, os elementos
+        de uma linha estão em endereços físicos consecutivos (por exemplo, 100,
+        101, 102, ...). Assim, ao percorrer uma linha, você acessa endereços
+        próximos, aproveitando a localidade espacial e a cache.
+      </p>
+
+      <p>
+        No <strong>column major</strong>, os elementos de uma coluna estariam em
+        endereços consecutivos. Se você tentar acessar uma coluna em C (row
+        major), precisará saltar entre endereços distantes (por exemplo, 100,
+        110, 120, ...), o que reduz a eficiência do cache, pois os dados não
+        estão fisicamente próximos na memória.
+      </p>
+    </div>
+
+    <div class="code-example">
+      <strong>Exemplo em C (Row Major):</strong><br />
+      int matriz[3][4] = {{1,2,3,4}, {5,6,7,8}, {9,10,11,12}};<br /><br />
+
+      <strong>Memória:</strong>
+      [1][2][3][4][5][6][7][8][9][10][11][12]<br /><br />
+
+      <strong>Acesso eficiente (por linhas):</strong><br />
+      for(i=0; i&lt;3; i++)<br />
+      &nbsp;&nbsp;&nbsp;&nbsp;for(j=0; j&lt;4; j++)<br />
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf("%d ",
+      matriz[i][j]); // Acesso sequencial<br /><br />
+
+      <strong>Acesso ineficiente (por colunas):</strong><br />
+      for(j=0; j&lt;4; j++)<br />
+      &nbsp;&nbsp;&nbsp;&nbsp;for(i=0; i&lt;3; i++)<br />
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf("%d ",
+      matriz[i][j]); // Saltos na memória
+    </div>
+
+    <div class="highlight">
+      <h3>🎯 Conclusão Principal</h3>
+      <p>
+        Em ordenação por colunas (column major), os elementos de uma mesma
+        coluna estão armazenados em endereços de memória consecutivos. Já em C,
+        que utiliza ordenação por linhas (row major), os elementos de uma mesma
+        linha ficam juntos na memória. Por isso, ao acessar uma coluna em C, o
+        programa precisa pular entre endereços de memória distantes. Isso
+        diminui drasticamente a eficiência do cache, pois os dados acessados não
+        estão próximos fisicamente na memória, tornando o acesso
+        significativamente mais lento.
+      </p>
+    </div>
+
+    <div class="performance-box">
+      <h3>📊 Impacto Prático</h3>
+      <p>A diferença de performance pode ser dramática:</p>
+      <ul>
+        <li>
+          <strong>Row-major em C:</strong> Alta taxa de cache hits, acesso
+          rápido
+        </li>
+        <li>
+          <strong>Column-major em C:</strong> Alta taxa de cache misses, pode
+          ser 10x-100x mais lento
+        </li>
+        <li>
+          <strong>Tamanho da matriz:</strong> Quanto maior a matriz, maior a
+          diferença
+        </li>
+        <li>
+          <strong>Algoritmos:</strong> Multiplicação de matrizes, operações
+          lineares são drasticamente afetadas
+        </li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      <p>
+        Programação Paralela - Tarefa 1: Análise de Memória Cache e Padrões de
+        Acesso
+      </p>
+      <p>
+        Documento gerado automaticamente - Para conversão em PDF use: Ctrl+P →
+        Salvar como PDF
+      </p>
+    </div>
+  </body>
+</html>
