@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tarefa 3 - Aproximação de π com Análise de Performance</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      h1 {
+        color: #2c3e50;
+        border-bottom: 3px solid #9b59b6;
+        padding-bottom: 10px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      h2 {
+        color: #34495e;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        padding-left: 10px;
+        border-left: 4px solid #9b59b6;
+      }
+
+      h3 {
+        color: #8e44ad;
+        margin-top: 25px;
+      }
+
+      h4 {
+        color: #6c3483;
+        margin-top: 20px;
+      }
+
+      p {
+        text-align: justify;
+        margin-bottom: 15px;
+      }
+
+      .highlight {
+        background-color: #f8f4fd;
+        border-left: 4px solid #9b59b6;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+
+      .math-box {
+        background-color: #e8f5e8;
+        border: 1px solid #27ae60;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .series-formula {
+        background-color: #fef9e7;
+        border: 1px solid #f39c12;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 8px;
+        font-family: "Courier New", monospace;
+        text-align: center;
+        font-size: 16px;
+      }
+
+      .code-example {
+        background-color: #f4f4f4;
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+        font-family: "Courier New", monospace;
+        overflow-x: auto;
+        font-size: 14px;
+      }
+
+      .algorithm-box {
+        background-color: #edf2ff;
+        border: 1px solid #3498db;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      .performance-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 14px;
+      }
+
+      .performance-table th,
+      .performance-table td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: center;
+      }
+
+      .performance-table th {
+        background-color: #9b59b6;
+        color: white;
+      }
+
+      .performance-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      .real-world-box {
+        background-color: #fff5f5;
+        border: 1px solid #e53e3e;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .application-box {
+        background-color: #f0fff4;
+        border: 1px solid #38a169;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 8px;
+      }
+
+      .cfd-box {
+        background-color: #e6f3ff;
+        border: 1px solid #0066cc;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 8px;
+      }
+
+      .ai-box {
+        background-color: #fff0e6;
+        border: 1px solid #ff6600;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 8px;
+      }
+
+      .science-box {
+        background-color: #f0e6ff;
+        border: 1px solid #8000ff;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 8px;
+      }
+
+      .finance-box {
+        background-color: #e6ffe6;
+        border: 1px solid #00cc00;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 8px;
+      }
+
+      .optimization-box {
+        background-color: #e6fffa;
+        border: 1px solid #319795;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      .patterns-box {
+        background-color: #ffe6f0;
+        border: 1px solid #cc0066;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 10px;
+      }
+
+      .conclusion-box {
+        background-color: #f7fafc;
+        border: 1px solid #4a5568;
+        padding: 20px;
+        margin: 30px 0;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .structure-box {
+        background-color: #f8f9fa;
+        border: 1px solid #6c757d;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      ul {
+        margin-left: 20px;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      .footer {
+        margin-top: 50px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .compilation-box {
+        background-color: #f0f8ff;
+        border: 1px solid #1e90ff;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      .pi-symbol {
+        font-size: 24px;
+        color: #9b59b6;
+        font-weight: bold;
+      }
+
+      .extension-box {
+        background-color: #f5f5f0;
+        border: 1px solid #999900;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      @media print {
+        body {
+          max-width: none;
+          margin: 0;
+          padding: 15px;
+        }
+
+        .page-break {
+          page-break-before: always;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>
+      Aproximação de <span class="pi-symbol">π</span> com Análise de Performance
+    </h1>
+
+    <h2>📋 Descrição da Tarefa</h2>
+
+    <p>
+      Este projeto implementa um programa em C que calcula aproximações de π
+      usando séries matemáticas, variando o número de iterações e medindo o
+      tempo de execução. O objetivo é comparar os valores obtidos com o valor
+      real de π e analisar como a acurácia melhora com mais processamento
+      computacional.
+    </p>
+
+    <div class="highlight">
+      <strong>Objetivo Principal:</strong> Demonstrar a relação fundamental
+      entre esforço computacional e precisão numérica, um princípio que governa
+      desde simulações científicas até inteligência artificial moderna.
+    </div>
+
+    <h2>🧮 Teoria Matemática</h2>
+
+    <h3>1. Série de Leibniz</h3>
+
+    <p>
+      A <strong>Série de Leibniz</strong> é uma das fórmulas mais conhecidas
+      para calcular π, descoberta pelo matemático alemão Gottfried Wilhelm
+      Leibniz:
+    </p>
+
+    <div class="series-formula">
+      π/4 = 1 - 1/3 + 1/5 - 1/7 + 1/9 - 1/11 + ...
+    </div>
+
+    <div class="algorithm-box">
+      <h4>Características da Série de Leibniz:</h4>
+      <ul>
+        <li><strong>Convergência lenta:</strong> O(1/n)</li>
+        <li>
+          <strong>Simples de implementar:</strong> Apenas divisões e alternância
+          de sinais
+        </li>
+        <li><strong>Requer muitas iterações:</strong> Para alta precisão</li>
+        <li><strong>Erro aproximado:</strong> |erro| ≈ 1/(2n+1)</li>
+      </ul>
+    </div>
+
+    <h3>2. Série de Nilakantha</h3>
+
+    <p>
+      A <strong>Série de Nilakantha</strong> oferece convergência mais rápida,
+      desenvolvida pelo matemático indiano Nilakantha Somayaji no século XV:
+    </p>
+
+    <div class="series-formula">
+      π = 3 + 4/(2×3×4) - 4/(4×5×6) + 4/(6×7×8) - ...
+    </div>
+
+    <div class="algorithm-box">
+      <h4>Características da Série de Nilakantha:</h4>
+      <ul>
+        <li><strong>Convergência rápida:</strong> O(1/n³)</li>
+        <li>
+          <strong>Baseada em produtos consecutivos:</strong> Três números
+          consecutivos
+        </li>
+        <li><strong>Melhor precisão:</strong> Com menos iterações</li>
+        <li><strong>Erro aproximado:</strong> |erro| ≈ 1/n³</li>
+      </ul>
+    </div>
+
+    <h2>⚙️ Funcionalidades Implementadas</h2>
+
+    <h3>Algoritmos de Cálculo</h3>
+
+    <div class="code-example">
+      // Série de Leibniz double calculate_pi_leibniz(long long iterations) {
+      double pi_approx = 0.0; int sign = 1; for (long long i = 0; i <
+      iterations; i++) { pi_approx += sign * (1.0 / (2 * i + 1)); sign *= -1; }
+      return 4.0 * pi_approx; } // Série de Nilakantha double
+      calculate_pi_nilakantha(long long iterations) { double pi_approx = 3.0;
+      int sign = 1; for (long long i = 1; i <= iterations; i++) { long long n =
+      2 * i; pi_approx += sign * (4.0 / (n * (n + 1) * (n + 2))); sign *= -1; }
+      return pi_approx; }
+    </div>
+
+    <h3>Análise de Performance</h3>
+
+    <div class="algorithm-box">
+      <ul>
+        <li>
+          <strong>measure_time():</strong> Mede tempo de execução com precisão
+          de clock
+        </li>
+        <li>
+          <strong>calculate_error():</strong> Calcula erro absoluto comparado ao
+          valor real
+        </li>
+        <li>
+          <strong>print_results():</strong> Formata resultados em tabela
+          organizada
+        </li>
+      </ul>
+    </div>
+
+    <h3>Testes Automatizados</h3>
+
+    <p>
+      O programa realiza testes com 6 diferentes números de iterações, variando
+      de 100 a 10,000,000, permitindo análise detalhada da convergência e
+      performance.
+    </p>
+
+    <h2>📊 Resultados Esperados</h2>
+
+    <h3>Tabela de Performance</h3>
+
+    <p>O programa gera uma tabela comparativa mostrando:</p>
+
+    <table class="performance-table">
+      <thead>
+        <tr>
+          <th>Método</th>
+          <th>Iterações</th>
+          <th>π Aproximado</th>
+          <th>Tempo (s)</th>
+          <th>Erro</th>
+          <th>Precisão</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Leibniz</td>
+          <td>1,000</td>
+          <td>3.140592653590</td>
+          <td>0.000015</td>
+          <td>1.00e-03</td>
+          <td>99.9682%</td>
+        </tr>
+        <tr>
+          <td>Nilakantha</td>
+          <td>1,000</td>
+          <td>3.141592653590</td>
+          <td>0.000012</td>
+          <td>1.00e-08</td>
+          <td>99.9999%</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Análise Teórica dos Resultados</h3>
+
+    <div class="algorithm-box">
+      <h4>1. Convergência:</h4>
+      <ul>
+        <li><strong>Leibniz:</strong> Convergência O(1/n) - lenta</li>
+        <li><strong>Nilakantha:</strong> Convergência O(1/n³) - rápida</li>
+      </ul>
+
+      <h4>2. Complexidade Temporal:</h4>
+      <ul>
+        <li>Ambos algoritmos: O(n) onde n = número de iterações</li>
+        <li>Tempo cresce linearmente com iterações</li>
+      </ul>
+
+      <h4>3. Precisão vs Performance:</h4>
+      <ul>
+        <li>Mais iterações = maior precisão</li>
+        <li>Lei dos retornos decrescentes aplicada</li>
+        <li>Trade-off entre tempo e acurácia</li>
+      </ul>
+    </div>
+
+    <h2>🌍 O Padrão de Precisão Crescente em Aplicações Reais</h2>
+
+    <div class="real-world-box">
+      <p>
+        <strong>O comportamento observado neste projeto</strong> - onde maior
+        esforço computacional resulta em precisão incrementalmente melhor - é um
+        padrão fundamental que se repete em diversas aplicações críticas da
+        computação moderna.
+      </p>
+    </div>
+
+    <h3>1. Simulações Físicas de Alta Fidelidade</h3>
+
+    <div class="application-box">
+      <h4>🛩️ Dinâmica de Fluidos Computacional (CFD)</h4>
+      <ul>
+        <li><strong>10³ células:</strong> estimativa grosseira do arrasto</li>
+        <li><strong>10⁶ células:</strong> captura turbulência básica</li>
+        <li>
+          <strong>10⁹ células:</strong> resolve detalhes críticos para segurança
+        </li>
+        <li>
+          <strong>Custo:</strong> Dias de supercomputador para cada incremento
+        </li>
+        <li>
+          <strong>Impacto:</strong> Diferença entre aprovação e rejeição em
+          certificação
+        </li>
+      </ul>
+    </div>
+
+    <div class="application-box">
+      <h4>🏗️ Simulações Estruturais (Elementos Finitos)</h4>
+      <ul>
+        <li><strong>Malha grosseira:</strong> tendências gerais de tensão</li>
+        <li>
+          <strong>Malha refinada:</strong> identifica pontos de falha críticos
+        </li>
+        <li>
+          <strong>Trade-off:</strong> Cada refinamento dobra o tempo de
+          computação
+        </li>
+        <li>
+          <strong>Consequência:</strong> Erro de 1% pode significar colapso
+          estrutural
+        </li>
+      </ul>
+    </div>
+
+    <h3>2. Inteligência Artificial e Aprendizado de Máquina</h3>
+
+    <div class="application-box">
+      <h4>🤖 Treinamento de Modelos de Linguagem</h4>
+      <ul>
+        <li><strong>GPT-1 (117M parâmetros):</strong> texto básico</li>
+        <li>
+          <strong>GPT-3 (175B parâmetros):</strong> capacidades emergentes
+        </li>
+        <li>
+          <strong>GPT-4 (~1.7T parâmetros):</strong> raciocínio sofisticado
+        </li>
+        <li><strong>Custo:</strong> Crescimento exponencial de recursos</li>
+      </ul>
+    </div>
+
+    <div class="application-box">
+      <h4>🎯 Algoritmos de Busca (AlphaGo)</h4>
+      <ul>
+        <li><strong>1.000 simulações:</strong> jogada razoável</li>
+        <li><strong>100.000 simulações:</strong> nível profissional</li>
+        <li><strong>10.000.000 simulações:</strong> superhumano</li>
+        <li>
+          <strong>Escalabilidade:</strong> Cada ordem de magnitude requer 10x
+          mais hardware
+        </li>
+      </ul>
+    </div>
+
+    <h3>3. Computação Científica e Pesquisa</h3>
+
+    <div class="application-box">
+      <h4>🧬 Descoberta de Medicamentos</h4>
+      <ul>
+        <li><strong>Nanosegundos:</strong> movimentos locais</li>
+        <li><strong>Microsegundos:</strong> mudanças conformacionais</li>
+        <li><strong>Milisegundos:</strong> dobramento completo de proteínas</li>
+        <li>
+          <strong>Desafio:</strong> Cada escala temporal requer ordens de
+          magnitude mais computação
+        </li>
+      </ul>
+    </div>
+
+    <h3>4. Padrões Comuns e Lições Aprendidas</h3>
+
+    <div class="math-box">
+      Lei dos Retornos Decrescentes Universais<br />
+      Precisão ∝ log(Recursos Computacionais)
+    </div>
+
+    <div class="optimization-box">
+      <h4>Estratégias de Otimização Emergentes:</h4>
+      <ul>
+        <li>
+          <strong>Computação Adaptativa:</strong> Alocar recursos onde precisão
+          é mais crítica
+        </li>
+        <li>
+          <strong>Aproximações Inteligentes:</strong> Modelos substitutos e
+          reduced-order modeling
+        </li>
+        <li>
+          <strong>Hardware Especializado:</strong> TPUs, FPGAs, computação
+          quântica
+        </li>
+      </ul>
+    </div>
+
+    <h2>💻 Compilação e Execução</h2>
+
+    <div class="compilation-box">
+      <h4>Linux/macOS:</h4>
+      <div class="code-example">gcc -o tarefa3 tarefa3.c -lm ./tarefa3</div>
+
+      <h4>Windows (MinGW/MSYS2):</h4>
+      <div class="code-example">
+        gcc -o tarefa3.exe tarefa3.c -lm tarefa3.exe
+      </div>
+
+      <h4>Windows (Visual Studio):</h4>
+      <div class="code-example">cl tarefa3.c /Fe:tarefa3.exe tarefa3.exe</div>
+
+      <h4>Configuração de Encoding (Windows PowerShell):</h4>
+      <div class="code-example">chcp 65001 # Define codificação UTF-8</div>
+    </div>
+
+    <h2>🔬 Conceitos de Programação Paralela</h2>
+
+    <div class="algorithm-box">
+      <p>
+        Este projeto demonstra conceitos fundamentais para programação paralela:
+      </p>
+
+      <h4>1. Paralelização Potencial:</h4>
+      <ul>
+        <li>Loop principal pode ser dividido entre threads</li>
+        <li>Redução paralela para somar termos</li>
+        <li>Independência entre iterações</li>
+      </ul>
+
+      <h4>2. Medição de Performance:</h4>
+      <ul>
+        <li>Benchmarking preciso com clock()</li>
+        <li>Análise de escalabilidade</li>
+        <li>Profiling de algoritmos</li>
+      </ul>
+
+      <h4>3. Trade-offs Computacionais:</h4>
+      <ul>
+        <li>Tempo vs Precisão</li>
+        <li>Memória vs Velocidade</li>
+        <li>Algoritmo vs Hardware</li>
+      </ul>
+    </div>
+
+    <h2>🚀 Extensões Possíveis</h2>
+
+    <div class="optimization-box">
+      <h4>1. Implementação Paralela:</h4>
+      <div class="code-example">
+        #include &lt;omp.h&gt; // Paralelizar com OpenMP #pragma omp parallel
+        for reduction(+:pi_approx) for (long long i = 0; i < iterations; i++) {
+        // Cálculo do termo }
+      </div>
+
+      <h4>2. Outros Algoritmos:</h4>
+      <ul>
+        <li>Método de Monte Carlo</li>
+        <li>Série de Machin</li>
+        <li>Algoritmo de Chudnovsky</li>
+        <li>Algoritmo de Bailey–Borwein–Plouffe</li>
+      </ul>
+
+      <h4>3. Análises Avançadas:</h4>
+      <ul>
+        <li>Gráficos de convergência</li>
+        <li>Análise estatística de erro</li>
+        <li>
+          Comparação com diferentes precisões (float, double, long double)
+        </li>
+      </ul>
+    </div>
+
+    <h2>🎯 Conclusões</h2>
+
+    <div class="conclusion-box">
+      <h3>
+        Este projeto ilustra princípios fundamentais da computação científica:
+      </h3>
+
+      <div style="text-align: left; margin-top: 20px">
+        <p>
+          <strong>1.</strong> Algoritmos diferentes têm características de
+          convergência distintas
+        </p>
+        <p>
+          <strong>2.</strong> Existe sempre um trade-off entre precisão e
+          performance
+        </p>
+        <p>
+          <strong>3.</strong> A escolha do algoritmo pode ser mais importante
+          que recursos computacionais
+        </p>
+        <p><strong>4.</strong> Medição rigorosa é essencial para otimização</p>
+      </div>
+
+      <p style="margin-top: 20px">
+        <strong
+          >Estes conceitos são aplicáveis em simulações reais, IA, computação
+          financeira e qualquer área que demande cálculos iterativos de alta
+          precisão.</strong
+        >
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>
+        <strong
+          >Projeto desenvolvido para demonstrar conceitos de aproximação
+          numérica, análise de performance e fundamentos de programação
+          paralela.</strong
+        >
+      </p>
+      <p>Projeto educacional - uso livre para fins acadêmicos.</p>
+    </div>
+  </body>
+</html>
