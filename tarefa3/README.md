@@ -55,21 +55,6 @@ A **Série de Nilakantha** oferece convergência mais rápida:
 - Compara performance entre os dois métodos
 - Análise comparativa detalhada
 
-## Estrutura do Código
-
-```c
-// Constantes
-#define PI_REAL 3.14159265358979323846
-
-// Funções principais
-double calculate_pi_leibniz(long long iterations);
-double calculate_pi_nilakantha(long long iterations);
-double measure_time(double (*func)(long long), long long iterations);
-double calculate_error(double approximation);
-void print_results(const char* method, long long iterations,
-                   double pi_approx, double time_taken);
-```
-
 ## Resultados Esperados
 
 ### Tabela de Performance
@@ -83,13 +68,12 @@ O programa gera uma tabela comparativa mostrando:
 - Erro absoluto
 - Percentual de precisão
 
-### Exemplo de Saída
+### Exemplo de Saída Real
 
 ```
-Método          |   Iterações |    π Aproximado |  Tempo (s) |         Erro |  Precisão
------------------|-------------|-----------------|------------|--------------|----------
-Leibniz         |        1000 | 3.140592653590  |   0.000015 |     1.00e-03 |  99.9682%
-Nilakantha      |        1000 | 3.141592653590  |   0.000012 |     1.00e-08 |  99.9999%
+n = 1000000
+Leibniz    : π ≈ 3.141591653590 | Erro: 1.00e-006 | Tempo: 0.023000 s
+Nilakantha : π ≈ 3.141592653590 | Erro: 7.11e-015 | Tempo: 0.021000 s
 ```
 
 ## Análise Teórica dos Resultados
@@ -109,54 +93,6 @@ Nilakantha      |        1000 | 3.141592653590  |   0.000012 |     1.00e-08 |  9
 - Mais iterações = maior precisão
 - Lei dos retornos decrescentes aplicada
 - Trade-off entre tempo e acurácia
-
-## Aplicações em Computação Real
-
-### 1. Simulações Científicas
-
-- **CFD**: Malhas mais finas requerem mais iterações
-- **Elementos Finitos**: Precisão vs custo computacional
-- **Modelagem Climática**: Milhões de cálculos iterativos
-
-### 2. Inteligência Artificial
-
-- **Treinamento de Redes Neurais**: Epochs vs overfitting
-- **Convergência de Algoritmos**: Critérios de parada
-- **Otimização**: Gradiente descendente iterativo
-
-### 3. Computação Financeira
-
-- **Monte Carlo**: Simulações para precificação
-- **Análise de Risco**: Precisão vs tempo de resposta
-- **High-Frequency Trading**: Latência crítica
-
-### 4. Estratégias de Otimização
-
-- **Paralelização**: Distribuir iterações entre cores
-- **Convergência Adaptativa**: Parar quando precisão suficiente
-- **Hardware Especializado**: GPUs, FPGAs, TPUs
-
-## Conceitos de Programação Paralela
-
-Este projeto demonstra conceitos fundamentais para programação paralela:
-
-### 1. **Paralelização Potencial**
-
-- Loop principal pode ser dividido entre threads
-- Redução paralela para somar termos
-- Independência entre iterações
-
-### 2. **Medição de Performance**
-
-- Benchmarking preciso com clock()
-- Análise de escalabilidade
-- Profiling de algoritmos
-
-### 3. **Trade-offs Computacionais**
-
-- Tempo vs Precisão
-- Memória vs Velocidade
-- Algoritmo vs Hardware
 
 ## O Padrão de Precisão Crescente em Aplicações Reais
 
@@ -270,31 +206,31 @@ Precisão ∝ log(Recursos Computacionais)
 - **100x mais recursos** → **~4-5x mais precisão**
 - Padrão consistente entre domínios diferentes
 
-#### **Estratégias de Otimização Emergentes**
+## Aplicações em Computação Real
 
-1. **Computação Adaptativa**
+### 1. Simulações Científicas
 
-   - Alocar recursos onde precisão é mais crítica
-   - Refinamento hierárquico de malhas
-   - Early stopping em ML quando convergência adequada
+- **CFD**: Malhas mais finas requerem mais iterações
+- **Elementos Finitos**: Precisão vs custo computacional
+- **Modelagem Climática**: Milhões de cálculos iterativos
 
-2. **Aproximações Inteligentes**
+### 2. Inteligência Artificial
 
-   - Modelos substitutos (surrogate models)
-   - Reduced-order modeling
-   - Transfer learning para reutilizar computação
+- **Treinamento de Redes Neurais**: Epochs vs overfitting
+- **Convergência de Algoritmos**: Critérios de parada
+- **Otimização**: Gradiente descendente iterativo
 
-3. **Hardware Especializado**
-   - TPUs para AI
-   - FPGAs para simulações específicas
-   - Computação quântica para problemas específicos
+### 3. Computação Financeira
 
-#### **Implicações para o Futuro**
+- **Monte Carlo**: Simulações para precificação
+- **Análise de Risco**: Precisão vs tempo de resposta
+- **High-Frequency Trading**: Latência crítica
 
-- **Sustentabilidade**: Crescimento exponencial de demanda energética
-- **Democratização**: Acesso a computação de alta performance
-- **Algoritmos**: Necessidade de métodos mais eficientes
-- **Hardware**: Especializações para domínios específicos
+### 4. Estratégias de Otimização
+
+- **Paralelização**: Distribuir iterações entre cores
+- **Convergência Adaptativa**: Parar quando precisão suficiente
+- **Hardware Especializado**: GPUs, FPGAs, TPUs
 
 ## Conclusões
 
