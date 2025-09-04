@@ -70,16 +70,16 @@ typedef struct No {
 ```
 
 ### Arquivos de Cientistas Famosos
-- `Einstein_relativity.txt`
-- `Newton_principia.txt`
-- `Darwin_evolution.txt`
-- `Curie_radioactivity.txt`
-- `Tesla_electricity.txt`
-- `Hawking_blackholes.txt`
-- `Turing_computing.txt`
-- `Galileo_astronomy.txt`
-- `Mendel_genetics.txt`
-- `Pascal_mathematics.txt`
+- `Einstein.txt`
+- `Newton.txt`
+- `Darwin.txt`
+- `Curie.txt`
+- `Tesla.txt`
+- `Hawking.txt`
+- `Turing.txt`
+- `Galileo.txt`
+- `Mendel.txt`
+- `Pascal.txt`
 
 ## Fluxo de Execução
 
@@ -116,23 +116,6 @@ typedef struct No {
 - Aguarda conclusão de todas as tasks criadas pela thread atual
 - Sincronização explícita das tasks
 
-### 1. **Balanceamento Dinâmico**
-- Tasks são distribuídas automaticamente
-- Threads ociosas pegam novas tasks
-- Melhor utilização de recursos
-
-### 2. **Flexibilidade**
-- Número variável de tasks
-- Criação condicional de tasks
-- Aninhamento de tasks possível
-
-### 3. **Desacoplamento**
-- Criação e execução são independentes
-- Uma thread cria, outras executam
-- Escalabilidade natural
-
-## Exemplo de Saída
-
 ```
 === PROCESSAMENTO PARALELO DE ARQUIVOS COM TASKS ===
 Criando lista de arquivos fictícios...
@@ -143,16 +126,70 @@ Iniciando processamento paralelo...
 Thread master 0 inicializando sistema...
 Thread 7 criando tasks para processamento...
 
-==> Task 1 iniciada na Thread 0: Einstein.txt
-  -> Thread 0: Analisando conteúdo de Einstein.txt...
-==> Task 2 iniciada na Thread 2: Newton.txt
-  -> Thread 2: Analisando conteúdo de Newton.txt...
-
+==> Task 1 iniciada na Thread 6: Einstein.txt
+==> Task 4 iniciada na Thread 1: Curie.txt
+  -> Thread 1: Analisando conteúdo de Curie.txt...
+==> Task 2 iniciada na Thread 3: Newton.txt
+  -> Thread 3: Analisando conteúdo de Newton.txt...
+  -> Thread 6: Analisando conteúdo de Einstein.txt...
+==> Task 5 iniciada na Thread 0: Tesla.txt
+  -> Thread 0: Analisando conteúdo de Tesla.txt...
+==> Task 6 iniciada na Thread 2: Hawking.txt
+  -> Thread 2: Analisando conteúdo de Hawking.txt...
+==> Task 7 iniciada na Thread 5: Turing.txt
+  -> Thread 5: Analisando conteúdo de Turing.txt...
+==> Task 3 iniciada na Thread 4: Darwin.txt
+  -> Thread 4: Analisando conteúdo de Darwin.txt...
 Todas as 10 tasks foram criadas!
 Aguardando conclusão de todas as tasks...
 
-  -> Thread 0: Processamento de Einstein.txt concluído!
-==> Task 1 finalizada na Thread 0
+==> Task 8 iniciada na Thread 7: Galileo.txt
+  -> Thread 7: Analisando conteúdo de Galileo.txt...
+  -> Thread 3: Processamento de Newton.txt concluído!
+==> Task 2 finalizada na Thread 3
+
+  -> Thread 1: Processamento de Curie.txt concluído!
+==> Task 4 finalizada na Thread 1
+
+  -> Thread 0: Processamento de Tesla.txt concluído!
+==> Task 5 final## Conceitos de Programação Paralela
+
+### 1. **Task Parallelism**
+- Diferentes threads executam diferentes tarefas
+- Contrasta com Data Parallelism (mesmo código, dados diferentes)
+
+### 2. **Work Stealing**
+- OpenMP implementa algoritmo de work stealing
+- Threads ociosas "roubam" work de threads ocupadas
+
+### 3. **Fork-Join Estendido**
+- Tasks estendem o modelo fork-join tradicional
+- Maior flexibilidade na criação e execuçãoizada na Thread 0
+
+==> Task 10 iniciada na Thread 1: Pascal.txt
+  -> Thread 1: Analisando conteúdo de Pascal.txt...
+  -> Thread 5: Processamento de Turing.txt concluído!
+==> Task 7 finalizada na Thread 5
+
+  -> Thread 6: Processamento de Einstein.txt concluído!
+==> Task 1 finalizada na Thread 6
+
+  -> Thread 4: Processamento de Darwin.txt concluído!
+==> Task 3 finalizada na Thread 4
+
+==> Task 9 iniciada na Thread 3: Mendel.txt
+  -> Thread 3: Analisando conteúdo de Mendel.txt...
+  -> Thread 2: Processamento de Hawking.txt concluído!
+==> Task 6 finalizada na Thread 2
+
+  -> Thread 7: Processamento de Galileo.txt concluído!
+==> Task 8 finalizada na Thread 7
+
+  -> Thread 1: Processamento de Pascal.txt concluído!
+==> Task 10 finalizada na Thread 1
+
+  -> Thread 3: Processamento de Mendel.txt concluído!
+==> Task 9 finalizada na Thread 3
 
 Thread master 0 finalizando processamento...
 
@@ -202,19 +239,5 @@ Todos os arquivos foram processados com sucesso!
 | **Flexibilidade** | Alta | Limitada |
 | **Overhead** | Ligeiramente maior | Menor |
 | **Casos de Uso** | Trabalho irregular | Trabalho uniforme |
-
-## Conceitos de Programação Paralela
-
-### 1. **Task Parallelism**
-- Diferentes threads executam diferentes tarefas
-- Contrasta com Data Parallelism (mesmo código, dados diferentes)
-
-### 2. **Work Stealing**
-- OpenMP implementa algoritmo de work stealing
-- Threads ociosas "roubam" work de threads ocupadas
-
-### 3. **Fork-Join Estendido**
-- Tasks estendem o modelo fork-join tradicional
-- Maior flexibilidade na criação e execução
 
 **Nota**: Este programa demonstra como OpenMP Tasks fornecem uma abstração poderosa para paralelização de estruturas de dados irregulares, oferecendo balanceamento dinâmico e alta flexibilidade.
