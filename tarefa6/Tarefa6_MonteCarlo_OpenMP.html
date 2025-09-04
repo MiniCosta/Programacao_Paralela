@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefa 6 - Estimativa de π com Monte Carlo e OpenMP</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        .problem {
+            background-color: #fee;
+            border-left: 4px solid #e74c3c;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .solution {
+            background-color: #eafaf1;
+            border-left: 4px solid #27ae60;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .math {
+            background-color: #e8f4f8;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-style: italic;
+            text-align: center;
+        }
+        .clause-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .clause-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+        .clause-card h4 {
+            color: #2980b9;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tarefa 6 - Estimativa Estocástica de π com OpenMP</h1>
+        
+        <h2>Método de Monte Carlo</h2>
+        <p>O método de Monte Carlo estima π através de simulação estatística:</p>
+        
+        <div class="math">
+            <strong>Conceito:</strong> Gerar pontos aleatórios em um quadrado [-1,1]² e contar quantos caem dentro do círculo de raio 1<br>
+            <strong>Fórmula:</strong> π ≈ 4 × (pontos_dentro_círculo / total_pontos)
+        </div>
+        
+        <h2>Implementações Desenvolvidas</h2>
+        
+        <h3>1. Versão Sequencial (Referência)</h3>
+            <strong>VERSÃO BASE:</strong> Implementação sequencial para comparação de performance
+        </div>
+        
+        <div class="code-block">
+    <pre><code>double estimar_pi_sequencial(long num_pontos) {
+        long pontos_dentro = 0;
+        
+        for (long i = 0; i < num_pontos; i++) {
+        double x = random(-1, 1);
+        double y = random(-1, 1);
+        
+        if (x*x + y*y <= 1.0) {
+            pontos_dentro++;
+        }
+        }
+        
+        return 4.0 * pontos_dentro / num_pontos;
+    }</code></pre>
+        </div>
+        
+        <p><strong>Características:</strong></p>
+        <ul>
+            <li>Execução determinística - sempre produz o mesmo resultado</li>
+            <li>Serve como referência para medir speedup das versões paralelas</li>
+            <li>Tempo típico: ~0.0144s para 1M de pontos</li>
+            <li>Precisão: erro < 0.1% na estimativa de π</li>
+        </ul>
+        
+        <h3>2. Versão com Condição de Corrida (INCORRETA)</h3>
+        <div class="problem">
+            <strong>PROBLEMA:</strong> Múltiplas threads modificam a mesma variável simultaneamente sem sincronização!
+        </div>
+        
+        <div class="code-block">
+long pontos_dentro = 0; // Variável compartilhada!
+
+#pragma omp parallel for
+for (long i = 0; i < num_pontos; i++) {
+    // ... cálculos ...
+    if (x*x + y*y <= 1.0) {
+        pontos_dentro++; // CONDIÇÃO DE CORRIDA!
+    }
+}
+        </div>
+        
+        <p><strong>Resultados Inconsistentes Observados (Execução Atual):</strong></p>
+        <table>
+            <tr><th>Execução</th><th>π Estimado</th><th>Erro</th><th>Tempo (s)</th><th>Explicação</th></tr>
+            <tr><td>1</td><td>0.909280</td><td>71.057%</td><td>0.0170</td><td rowspan="3">Incrementos perdidos devido à corrida entre threads</td></tr>
+            <tr><td>2</td><td>0.823200</td><td>73.797%</td><td>0.0200</td></tr>
+            <tr><td>3</td><td>0.906520</td><td>71.145%</td><td>0.0168</td></tr>
+        </table>
+        
+        <p><strong>Variabilidade em Múltiplas Execuções:</strong></p>
+        <ul>
+            <li>Faixa de valores observados: 0.430480 a 1.652680</li>
+            <li>Faixa de erros: 43.200% a 86.297%</li>
+            <li>Comportamento completamente imprevisível</li>
+        </ul>
+        
+        <h3>3. Correção com #pragma omp critical</h3>
+        <div class="solution">
+            <strong>SOLUÇÃO:</strong> Apenas uma thread por vez pode incrementar a variável
+        </div>
+        
+        <div class="code-block">
+if (x*x + y*y <= 1.0) {
+    #pragma omp critical
+    pontos_dentro++; // Protegido contra race condition
+}
+        </div>
+        
+        <div class="warning">
+            <strong>DESVANTAGEM:</strong> Serializa o acesso, reduzindo performance significativamente (9x mais lento que sequencial)
+        </div>
+        
+        <h3>4. Versão Otimizada com Reduction</h3>
+        <div class="solution">
+            <strong>MELHOR SOLUÇÃO:</strong> OpenMP gerencia automaticamente a redução
+        </div>
+        
+        <div class="code-block">
+#pragma omp parallel for reduction(+:pontos_dentro)
+for (long i = 0; i < num_pontos; i++) {
+    // ... cálculos ...
+    if (x*x + y*y <= 1.0) {
+        pontos_dentro++; // Cada thread tem cópia local
+    }
+} // OpenMP combina automaticamente no final
+        </div>
+        
+        <h2>Cláusulas OpenMP Demonstradas</h2>
+        
+        <div class="clause-grid">
+            <div class="clause-card">
+                <h4>PRIVATE</h4>
+                <p><strong>Comportamento:</strong> Cada thread tem sua própria cópia</p>
+                <ul>
+                    <li>Valor inicial é indefinido</li>
+                    <li>Modificações não afetam outras threads</li>
+                    <li>Valor não é preservado após região paralela</li>
+                </ul>
+            </div>
+            
+            <div class="clause-card">
+                <h4>FIRSTPRIVATE</h4>
+                <p><strong>Comportamento:</strong> Como private, mas inicializada</p>
+                <ul>
+                    <li>Cada thread recebe valor inicial</li>
+                    <li>Útil para variáveis que precisam do valor original</li>
+                    <li>Não afeta variável original após região paralela</li>
+                </ul>
+            </div>
+            
+            <div class="clause-card">
+                <h4>LASTPRIVATE</h4>
+                <p><strong>Comportamento:</strong> Preserva valor da última iteração</p>
+                <ul>
+                    <li>Thread que executa última iteração define valor</li>
+                    <li>Valor é copiado de volta para variável original</li>
+                    <li>Útil para capturar resultado final</li>
+                </ul>
+            </div>
+            
+            <div class="clause-card">
+                <h4>SHARED</h4>
+                <p><strong>Comportamento:</strong> Variável compartilhada entre threads</p>
+                <ul>
+                    <li>Todas threads acessam mesma memória</li>
+                    <li>Requer sincronização</li>
+                    <li>Padrão para variáveis globais</li>
+                </ul>
+            </div>
+        </div>
+        
+        <h3>Performance Comparada (Resultados Atuais)</h3>
+        <table>
+            <tr>    
+                <th>Versão</th>
+                <th>Tempo (s)</th>
+                <th>π Estimado</th>
+                <th>Erro (%)</th>
+                <th>Speedup</th>
+                <th>Observações</th>
+            </tr>
+            <tr>
+                <td>Sequencial</td>
+                <td>0.0144</td>
+                <td>3.142568</td>
+                <td>0.031%</td>
+                <td>1.0x</td>
+                <td>Referência</td>
+            </tr>
+            <tr style="background-color: #ffe6e6;">
+                <td>Race Condition</td>
+                <td>0.0168-0.0281</td>
+                <td>0.430-1.653</td>
+                <td>43-86%</td>
+                <td>0.5-0.9x</td>
+                <td><strong>Altamente inconsistente</strong></td>
+            </tr>
+            <tr style="background-color: #fff9e6;">
+                <td>Critical</td>
+                <td>0.1326</td>
+                <td>3.141136</td>
+                <td>0.015%</td>
+                <td>0.11x</td>
+                <td>Correto, mas <strong>9x mais lento</strong></td>
+            </tr>
+            <tr style="background-color: #e6f7e6;">
+                <td>Reduction</td>
+                <td>0.0215</td>
+                <td>3.141120</td>
+                <td>0.015%</td>
+                <td>0.67x</td>
+                <td><strong>Melhor solução</strong></td>
+            </tr>
+        </table>
+        
+        <h2>Análise dos Resultados</h2>
+        
+        <h3>Observações Críticas</h3>
+        <ol>
+            <li><strong>Overhead de Paralelização:</strong> Para este tamanho de problema (1M pontos), o overhead de criação e sincronização de threads supera o ganho computacional. A versão reduction (0.0215s) é mais lenta que a sequencial (0.0144s).</li>
+            
+            <li><strong>Critical Section - Gargalo Severo:</strong> A serialização forçada torna o programa <strong>9 vezes mais lento</strong> (0.1326s vs 0.0144s), demonstrando por que critical sections devem ser evitadas em loops intensivos.</li>
+            
+            <li><strong>Imprevisibilidade Total:</strong> A race condition não apenas produz resultados incorretos, mas <strong>completamente imprevisíveis</strong> - variação de 0.430 a 1.653 para o mesmo cálculo!</li>
+            
+            <li><strong>Consistência das Correções:</strong> Critical e reduction sempre produzem os mesmos resultados (3.141136 e 3.141120), provando que as correções eliminam a não-determinismo.</li>
+        </ol>
+        
+        <h2>Conclusões</h2>
+        <ol>
+            <li><strong>Condições de corrida</strong> são um problema crítico na paralelização que pode levar a resultados completamente incorretos</li>
+            <li><strong>Critical sections</strong> resolvem o problema, mas introduzem overhead significativo</li>
+            <li><strong>Reduction</strong> é a solução mais eficiente para operações associativas como soma</li>
+            <li><strong>Cláusulas OpenMP</strong> oferecem controle preciso sobre o escopo de variáveis:
+                <ul>
+                    <li>Use <code>private</code> para variáveis temporárias por thread</li>
+                    <li>Use <code>firstprivate</code> quando threads precisam do valor inicial</li>
+                    <li>Use <code>lastprivate</code> para capturar resultado da última iteração</li>
+                    <li>Use <code>shared</code> para dados compartilhados (com sincronização)</li>
+                    <li>Use <code>reduction</code> para operações de acúmulo</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+</body>
+</html>
