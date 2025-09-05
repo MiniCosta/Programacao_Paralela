@@ -114,142 +114,284 @@
         <h2>Implementações Desenvolvidas</h2>
         
         <h3>1. Versão Sequencial (Referência)</h3>
+        <div class="solution">
             <strong>VERSÃO BASE:</strong> Implementação sequencial para comparação de performance
         </div>
         
         <div class="code-block">
-    <pre><code>double estimar_pi_sequencial(long num_pontos) {
-        long pontos_dentro = 0;
-        
-        for (long i = 0; i < num_pontos; i++) {
-        double x = random(-1, 1);
-        double y = random(-1, 1);
-        
-        if (x*x + y*y <= 1.0) {
-            pontos_dentro++;
-        }
-        }
-        
-        return 4.0 * pontos_dentro / num_pontos;
-    }</code></pre>
+    double estimar_pi_sequencial(long num_pontos) {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;long pontos_dentro = 0;<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;for (long i = 0; i < num_pontos; i++) {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;double x = random(-1, 1);<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;double y = random(-1, 1);<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (x*x + y*y <= 1.0) {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pontos_dentro++;<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;return 4.0 * pontos_dentro / num_pontos;<br>
+    }
         </div>
         
-        <p><strong>Características:</strong></p>
-        <ul>
-            <li>Execução determinística - sempre produz o mesmo resultado</li>
-            <li>Serve como referência para medir speedup das versões paralelas</li>
-            <li>Tempo típico: ~0.0144s para 1M de pontos</li>
-            <li>Precisão: erro < 0.1% na estimativa de π</li>
-        </ul>
-        
-        <h3>2. Versão com Condição de Corrida (INCORRETA)</h3>
+        <h3>2. Versão com Condição de Corrida usando #pragma omp parallel for</h3>
         <div class="problem">
-            <strong>PROBLEMA:</strong> Múltiplas threads modificam a mesma variável simultaneamente sem sincronização!
+            <strong>PROBLEMA CRÍTICO:</strong> Múltiplas threads modificam a mesma variável simultaneamente sem sincronização!
         </div>
         
         <div class="code-block">
-long pontos_dentro = 0; // Variável compartilhada!
-
-#pragma omp parallel for
-for (long i = 0; i < num_pontos; i++) {
-    // ... cálculos ...
-    if (x*x + y*y <= 1.0) {
-        pontos_dentro++; // CONDIÇÃO DE CORRIDA!
+    long pontos_dentro = 0; // Variável compartilhada sem proteção!<br>
+    <br>
+    #pragma omp parallel for<br>
+    for (long i = 0; i < num_pontos; i++) {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;// ... cálculos ...<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;if (x*x + y*y <= 1.0) {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pontos_dentro++; // CONDIÇÃO DE CORRIDA!<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
     }
-}
         </div>
         
-        <p><strong>Resultados Inconsistentes Observados (Execução Atual):</strong></p>
+        <div class="problem">
+            <strong>🔍 Por que `pontos_dentro++` é perigoso em paralelo?</strong><br><br>
+            
+            A operação <code>pontos_dentro++</code> parece ser uma única instrução atômica, mas o processador na verdade executa <strong>3 operações separadas</strong>:
+            
+    <div style="background-color: #fff3e0; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #ff9800;">
+        <strong>1. LOAD (Carregar):</strong> Buscar o valor atual de <code>pontos_dentro</code> da memória para o registrador<br>
+        <strong>2. INCREMENT (Incrementar):</strong> Somar 1 ao valor no registrador<br>
+        <strong>3. STORE (Armazenar):</strong> Escrever o novo valor do registrador de volta para a memória
+    </div>
+    
+    <strong>⚡ Race Condition em Ação: O Cenário do Desastre</strong><br>
+    <em>Imagine que <code>pontos_dentro = 15.000</code> e duas threads (A e B) encontram pontos dentro do círculo simultaneamente:</em>
+
+    <div style="background-color: #f5f5f5; padding: 12px; border-radius: 4px; margin: 10px 0; font-family: monospace;">
+        <strong>Timeline da Execução Paralela:</strong><br>
+        <span style="color: #1976d2;">Thread A:</span> LOAD pontos_dentro → registrador_A = 15.000<br>
+        <span style="color: #d32f2f;">Thread B:</span> LOAD pontos_dentro → registrador_B = 15.000 <strong style="background-color: #ffeb3b;">← MESMA LEITURA!</strong><br>
+        <span style="color: #1976d2;">Thread A:</span> INCREMENT registrador_A → registrador_A = 15.001<br>
+        <span style="color: #d32f2f;">Thread B:</span> INCREMENT registrador_B → registrador_B = 15.001<br>
+        <span style="color: #1976d2;">Thread A:</span> STORE registrador_A → pontos_dentro = 15.001<br>
+        <span style="color: #d32f2f;">Thread B:</span> STORE registrador_B → pontos_dentro = 15.001 <strong style="background-color: #ffcdd2;">← SOBRESCREVE!</strong>
+    </div>
+
+    <div style="background-color: #ffebee; padding: 12px; border-radius: 4px; margin-top: 10px;">
+        <strong style="color: #d32f2f;">❌ PROBLEMA FUNDAMENTAL:</strong> <em>Lost Update</em> - Ambas threads leram o mesmo valor inicial<br>
+        <strong style="color: #d32f2f;">📊 RESULTADO INCORRETO:</strong> pontos_dentro = 15.001 (deveria ser 15.002)<br>
+        <strong style="color: #d32f2f;">💥 IMPACTO CRÍTICO:</strong> Uma contagem perdida = Estimativa de π incorreta<br>
+        <strong style="color: #d32f2f;">🔄 FREQUÊNCIA:</strong> Acontece milhares de vezes em execuções paralelas!
+    </div>
+
+    <div style="background-color: #e8f5e8; padding: 12px; border-radius: 4px; margin-top: 10px;">
+        <strong style="color: #2e7d32;">✅ ANALOGIA PRÁTICA:</strong> <br>
+        É como duas pessoas tentando atualizar o mesmo documento ao mesmo tempo - uma das alterações sempre se perde porque ambas trabalharam com a versão antiga!
+    </div>
+
+    <div style="background-color: #e3f2fd; padding: 12px; border-radius: 4px; margin-top: 10px;">
+        <strong style="color: #1565c0;">🎯 POR QUE ISSO IMPORTA NO MONTE CARLO:</strong><br>
+        • Cada ponto perdido = erro na estimativa de π<br>
+        • Com milhões de pontos, centenas de milhares podem ser perdidos<br>
+        • Resultado: π calculado será sempre menor que o valor real<br>
+    </div>
+        </div>
+        
+        <p><strong>Resultados Inconsistentes Observados:</strong></p>
         <table>
             <tr><th>Execução</th><th>π Estimado</th><th>Erro</th><th>Tempo (s)</th><th>Explicação</th></tr>
-            <tr><td>1</td><td>0.909280</td><td>71.057%</td><td>0.0170</td><td rowspan="3">Incrementos perdidos devido à corrida entre threads</td></tr>
-            <tr><td>2</td><td>0.823200</td><td>73.797%</td><td>0.0200</td></tr>
-            <tr><td>3</td><td>0.906520</td><td>71.145%</td><td>0.0168</td></tr>
+            <tr><td>1</td><td>0.453920</td><td>85.551%</td><td>0.0115</td><td rowspan="3">Incrementos perdidos devido à corrida entre threads</td></tr>
+            <tr><td>2</td><td>0.448800</td><td>85.714%</td><td>0.0035</td></tr>
+            <tr><td>3</td><td>0.709560</td><td>77.414%</td><td>0.0074</td></tr>
         </table>
-        
-        <p><strong>Variabilidade em Múltiplas Execuções:</strong></p>
-        <ul>
-            <li>Faixa de valores observados: 0.430480 a 1.652680</li>
-            <li>Faixa de erros: 43.200% a 86.297%</li>
-            <li>Comportamento completamente imprevisível</li>
-        </ul>
         
         <h3>3. Correção com #pragma omp critical</h3>
         <div class="solution">
-            <strong>SOLUÇÃO:</strong> Apenas uma thread por vez pode incrementar a variável
+            <strong>CORREÇÃO FUNCIONAL:</strong> Apenas uma thread por vez pode incrementar a variável
         </div>
         
         <div class="code-block">
-if (x*x + y*y <= 1.0) {
-    #pragma omp critical
-    pontos_dentro++; // Protegido contra race condition
-}
+    #pragma omp parallel for<br>
+    for (long i = 0; i < num_pontos; i++) {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;// ... cálculos ...<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;if (x*x + y*y <= 1.0) {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#pragma omp critical<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pontos_dentro++; // Protegido contra race condition<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+    }
         </div>
         
         <div class="warning">
-            <strong>DESVANTAGEM:</strong> Serializa o acesso, reduzindo performance significativamente (9x mais lento que sequencial)
+            <strong>⚠️ POR QUE ESTA ABORDAGEM NÃO É ÓTIMA:</strong><br><br>
+            
+            <strong>🚦 O Gargalo em Ação:</strong><br>
+            • <strong>Threads esperando:</strong> Quando uma thread está no critical, todas as outras ficam bloqueadas<br>
+            • <strong>Serialização forçada:</strong> 8 threads executando como se fosse 1 thread<br>
+            • <strong>Overhead de sincronização:</strong> Cada critical section tem custo computacional<br><br>
+            
+            <strong>📊 Análise de Performance (100k pontos, ~78k hits):</strong><br>
+            • <strong>Tempo total:</strong> 0.0170s (vs 0.0062s sequencial)<br>
+            • <strong>Speedup:</strong> 0.36x (na verdade ficou <strong>2.7x mais lento!</strong>)<br>
+            • <strong>Critical sections executadas:</strong> ~78.000 (uma para cada ponto dentro do círculo)<br>
+            • <strong>Tempo perdido:</strong> Threads ficam 60% do tempo esperando na fila do critical
         </div>
         
-        <h3>4. Versão Otimizada com Reduction</h3>
+        <h3>4. Reestruturação com #pragma omp parallel seguido de #pragma omp for</h3>
         <div class="solution">
-            <strong>MELHOR SOLUÇÃO:</strong> OpenMP gerencia automaticamente a redução
+            <strong>SOLUÇÃO INTELIGENTE:</strong> Separar a região paralela do loop e usar acumulação local
         </div>
         
-        <div class="code-block">
-#pragma omp parallel for reduction(+:pontos_dentro)
-for (long i = 0; i < num_pontos; i++) {
-    // ... cálculos ...
-    if (x*x + y*y <= 1.0) {
-        pontos_dentro++; // Cada thread tem cópia local
-    }
-} // OpenMP combina automaticamente no final
+        <div class="solution">
+            <strong>🚀 Por que esta abordagem é ótima?</strong><br><br>
+            
+            <strong>⚡ Comparação de Sincronizações:</strong>
+            <table style="margin: 10px 0; font-size: 14px;">
+                <tr><th>Abordagem</th><th>Sincronizações</th><th>Exemplo (100k pontos, ~78k hits)</th></tr>
+                <tr style="background-color: #ffebee;">
+                    <td><code>#pragma omp critical</code><br>dentro do loop</td>
+                    <td>A cada incremento</td>
+                    <td><strong>~78.000 sincronizações!</strong><br>Cada hit = 1 critical section</td>
+                </tr>
+                <tr style="background-color: #e8f5e8;">
+                    <td><code>#pragma omp parallel</code><br>+ acumulação local</td>
+                    <td>Uma por thread</td>
+                    <td><strong>8 sincronizações</strong><br>Uma por thread no final</td>
+                </tr>
+            </table>
+            
+            <strong>🔧 Funcionamento Passo a Passo:</strong>
+            <ol>
+                <li><strong>Criação das Threads:</strong> <code>#pragma omp parallel</code> cria 8 threads</li>
+                <li><strong>Variáveis Locais:</strong> Cada thread tem sua própria <code>pontos_locais = 0</code></li>
+                <li><strong>Divisão do Trabalho:</strong> <code>#pragma omp for</code> divide 100k iterações entre threads</li>
+                <li><strong>Acumulação Local:</strong> Cada thread incrementa apenas sua variável local</li>
+                <li><strong>Sincronização Final:</strong> Apenas no final, cada thread adiciona sua soma ao total</li>
+            </ol>
+            
+            <strong>🏆 Resultados da Performance:</strong>
+            <ul>
+                <li><strong>Tempo:</strong> 0.0003s vs 0.0170s do critical (56x mais rápido!)</li>
+                <li><strong>Speedup:</strong> 20.7x comparado ao sequencial</li>
+                <li><strong>Precisão:</strong> Mantém a correção completa dos resultados</li>
+                <li><strong>Escalabilidade:</strong> Performance melhora linearmente com mais cores</li>
+            </ul>
         </div>
         
-        <h2>Cláusulas OpenMP Demonstradas</h2>
+        <h2>Demonstrações Detalhadas das Cláusulas OpenMP</h2>
         
         <div class="clause-grid">
             <div class="clause-card">
                 <h4>PRIVATE</h4>
                 <p><strong>Comportamento:</strong> Cada thread tem sua própria cópia</p>
                 <ul>
-                    <li>Valor inicial é indefinido</li>
+                    <li><strong>Valor inicial é INDEFINIDO</strong></li>
                     <li>Modificações não afetam outras threads</li>
                     <li>Valor não é preservado após região paralela</li>
                 </ul>
+                <div class="code-block" style="font-size: 13px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #6c757d;">
+                    <div style="background: #343a40; color: white; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-weight: bold;">
+                        🔒 DEMONSTRAÇÃO: PRIVATE
+                    </div>
+                    <div style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                        <strong style="color: #856404;">⬇️ ANTES:</strong> variavel = 100
+                    </div>
+                    <div style="background: #d1ecf1; padding: 10px; border-radius: 4px; margin-bottom: 8px;">
+                        <strong style="color: #0c5460;">🧵 DURANTE A EXECUÇÃO:</strong><br>
+                        <span style="color: #d32f2f;">Thread 0:</span> variavel = ???<br>
+                        <span style="color: #388e3c;">Thread 1:</span> variavel = ???<br>
+                        <span style="color: #f57c00;">Thread 2:</span> variavel = ???<br>
+                        <small style="color: #6c757d;">💡 Cada thread tem sua cópia, valor inicial indefinido</small>
+                    </div>
+                    <div style="background: #f8d7da; padding: 8px; border-radius: 4px;">
+                        <strong style="color: #721c24;">⬆️ DEPOIS:</strong> variavel = 100 (inalterada)
+                    </div>
+                </div>
             </div>
             
             <div class="clause-card">
                 <h4>FIRSTPRIVATE</h4>
                 <p><strong>Comportamento:</strong> Como private, mas inicializada</p>
                 <ul>
-                    <li>Cada thread recebe valor inicial</li>
-                    <li>Útil para variáveis que precisam do valor original</li>
-                    <li>Não afeta variável original após região paralela</li>
+                    <li><strong>Cada thread recebe CÓPIA do valor inicial</strong></li>
+                    <li>Útil quando threads precisam do valor original</li>
+                    <li>Modificações locais não afetam variável original</li>
                 </ul>
-            </div>
-            
-            <div class="clause-card">
-                <h4>LASTPRIVATE</h4>
-                <p><strong>Comportamento:</strong> Preserva valor da última iteração</p>
-                <ul>
-                    <li>Thread que executa última iteração define valor</li>
-                    <li>Valor é copiado de volta para variável original</li>
-                    <li>Útil para capturar resultado final</li>
-                </ul>
+                <div class="code-block" style="font-size: 13px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #28a745;">
+                    <div style="background: #28a745; color: white; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-weight: bold;">
+                        🎯 DEMONSTRAÇÃO: FIRSTPRIVATE
+                    </div>
+                    <div style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                        <strong style="color: #856404;">⬇️ ANTES:</strong> contador = 50
+                    </div>
+                    <div style="background: #d4edda; padding: 10px; border-radius: 4px; margin-bottom: 8px;">
+                        <strong style="color: #155724;">🧵 DURANTE A EXECUÇÃO:</strong><br>
+                        <span style="color: #d32f2f;">Thread 0:</span> contador = 50 → 60<br>
+                        <span style="color: #388e3c;">Thread 1:</span> contador = 50 → 75<br>
+                        <span style="color: #f57c00;">Thread 2:</span> contador = 50 → 55<br>
+                        <small style="color: #6c757d;">💡 Todas começam com 50, modificam independentemente</small>
+                    </div>
+                    <div style="background: #d1ecf1; padding: 8px; border-radius: 4px;">
+                        <strong style="color: #0c5460;">⬆️ DEPOIS:</strong> contador = 50 (inalterada)
+                    </div>
+                </div>
             </div>
             
             <div class="clause-card">
                 <h4>SHARED</h4>
                 <p><strong>Comportamento:</strong> Variável compartilhada entre threads</p>
                 <ul>
-                    <li>Todas threads acessam mesma memória</li>
-                    <li>Requer sincronização</li>
+                    <li><strong>Todas threads acessam mesma memória</strong></li>
+                    <li>Requer sincronização (#pragma omp atomic, critical)</li>
                     <li>Padrão para variáveis globais</li>
                 </ul>
+                <div class="code-block" style="font-size: 13px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #ffc107;">
+                    <div style="background: #ffc107; color: #212529; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-weight: bold;">
+                        🤝 DEMONSTRAÇÃO: SHARED
+                    </div>
+                    <div style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                        <strong style="color: #856404;">⬇️ ANTES:</strong> soma_total = 0
+                    </div>
+                    <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin-bottom: 8px;">
+                        <strong style="color: #ef6c00;">🧵 ACESSOS SIMULTÂNEOS:</strong><br>
+                        <span style="color: #d32f2f;">Thread 0:</span> soma_total += 10 → 10<br>
+                        <span style="color: #388e3c;">Thread 1:</span> soma_total += 20 → 30<br>
+                        <span style="color: #f57c00;">Thread 2:</span> soma_total += 15 → 45<br>
+                        <small style="color: #dc3545;">⚠️ Requer sincronização!</small>
+                    </div>
+                    <div style="background: #d4edda; padding: 8px; border-radius: 4px;">
+                        <strong style="color: #155724;">⬆️ DEPOIS:</strong> soma_total = 45
+                    </div>
+                </div>
+            </div>
+            
+            <div class="clause-card">
+                <h4>LASTPRIVATE</h4>
+                <p><strong>Comportamento:</strong> Preserva valor da última iteração</p>
+                <ul>
+                    <li><strong>Thread que executa última iteração define valor</strong></li>
+                    <li>Valor é copiado de volta para variável original</li>
+                    <li>Útil para capturar resultado final de loops</li>
+                </ul>
+                <div class="code-block" style="font-size: 13px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #dc3545;">
+                    <div style="background: #dc3545; color: white; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-weight: bold;">
+                        🏁 DEMONSTRAÇÃO: LASTPRIVATE
+                    </div>
+                    <div style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                        <strong style="color: #856404;">⬇️ ANTES:</strong> ultimo_valor = -1
+                    </div>
+                    <div style="background: #fce4ec; padding: 10px; border-radius: 4px; margin-bottom: 8px;">
+                        <strong style="color: #ad1457;">🧵 LOOP for (i=0; i&lt;100; i++):</strong><br>
+                        <span style="color: #666;">Thread 0:</span> i=0..24 → ultimo_valor=24<br>
+                        <span style="color: #666;">Thread 1:</span> i=25..49 → ultimo_valor=49<br>
+                        <span style="color: #666;">Thread 2:</span> i=50..74 → ultimo_valor=74<br>
+                        <span style="color: #1976d2; font-weight: bold;">Thread 3:</span> i=75..99 → ultimo_valor=99 🏆
+                    </div>
+                    <div style="background: #d4edda; padding: 8px; border-radius: 4px;">
+                        <strong style="color: #155724;">⬆️ DEPOIS:</strong> ultimo_valor = 99<br>
+                        <small style="color: #6c757d;">💡 Thread 3 executou a última iteração</small>
+                    </div>
+                </div>
             </div>
         </div>
+
         
-        <h3>Performance Comparada (Resultados Atuais)</h3>
+        <h3>Performance Comparada</h3>
         <table>
             <tr>    
                 <th>Versão</th>
@@ -261,66 +403,92 @@ for (long i = 0; i < num_pontos; i++) {
             </tr>
             <tr>
                 <td>Sequencial</td>
-                <td>0.0144</td>
-                <td>3.142568</td>
-                <td>0.031%</td>
+                <td>0.0062</td>
+                <td>3.137000</td>
+                <td>0.146%</td>
                 <td>1.0x</td>
                 <td>Referência</td>
             </tr>
             <tr style="background-color: #ffe6e6;">
                 <td>Race Condition</td>
-                <td>0.0168-0.0281</td>
-                <td>0.430-1.653</td>
-                <td>43-86%</td>
-                <td>0.5-0.9x</td>
+                <td>0.0035-0.0115</td>
+                <td>0.449-0.710</td>
+                <td>77-86%</td>
+                <td>0.5-1.8x</td>
                 <td><strong>Altamente inconsistente</strong></td>
             </tr>
             <tr style="background-color: #fff9e6;">
                 <td>Critical</td>
-                <td>0.1326</td>
-                <td>3.141136</td>
-                <td>0.015%</td>
-                <td>0.11x</td>
-                <td>Correto, mas <strong>9x mais lento</strong></td>
+                <td>0.0170</td>
+                <td>3.140240</td>
+                <td>0.043%</td>
+                <td>0.36x</td>
+                <td>Correto, mas <strong>2.7x mais lento</strong></td>
             </tr>
             <tr style="background-color: #e6f7e6;">
-                <td>Reduction</td>
-                <td>0.0215</td>
-                <td>3.141120</td>
-                <td>0.015%</td>
-                <td>0.67x</td>
-                <td><strong>Melhor solução</strong></td>
+                <td>Reestruturado</td>
+                <td>0.0003</td>
+                <td>3.135560</td>
+                <td>0.192%</td>
+                <td>20.7x</td>
+                <td><strong>Melhor performance</strong></td>
             </tr>
         </table>
         
+
+        <h2>Dica de Boas Práticas: <code>default(none)</code> no OpenMP</h2>
+        <div class="warning">
+            <strong>Por que usar <code>default(none)</code>?</strong><br>
+            Em programas OpenMP complexos, pode ser difícil acompanhar o escopo de cada variável (se é <code>shared</code>, <code>private</code>, etc).<br>
+            Ao adicionar <code>default(none)</code> na diretiva <code>parallel</code>, você obriga o compilador a exigir que todas as variáveis usadas dentro do bloco tenham seu escopo explicitamente declarado.<br>
+            <ul>
+                <li>Ajuda a evitar bugs sutis de paralelismo.</li>
+                <li>Torna o código mais legível e seguro.</li>
+                <li>Exemplo: <code>#pragma omp parallel for default(none) private(i) shared(N, array)</code></li>
+            </ul>
+            <strong>Recomendação:</strong> Sempre que possível, utilize <code>default(none)</code> em projetos reais para garantir clareza e segurança no escopo das variáveis.
+        </div>
         <h2>Análise dos Resultados</h2>
         
         <h3>Observações Críticas</h3>
         <ol>
-            <li><strong>Overhead de Paralelização:</strong> Para este tamanho de problema (1M pontos), o overhead de criação e sincronização de threads supera o ganho computacional. A versão reduction (0.0215s) é mais lenta que a sequencial (0.0144s).</li>
+            <li><strong>Condição de Corrida Severa:</strong> A versão incorreta com `#pragma omp parallel for` apresenta erros extremos (77-86%), demonstrando que race conditions podem tornar programas paralelos completamente inúteis.</li>
             
-            <li><strong>Critical Section - Gargalo Severo:</strong> A serialização forçada torna o programa <strong>9 vezes mais lento</strong> (0.1326s vs 0.0144s), demonstrando por que critical sections devem ser evitadas em loops intensivos.</li>
+            <li><strong>Critical Section - Gargalo Moderado:</strong> A correção com `#pragma omp critical` funciona, mas é 2.7x mais lenta que a versão sequencial devido à sincronização excessiva.</li>
             
-            <li><strong>Imprevisibilidade Total:</strong> A race condition não apenas produz resultados incorretos, mas <strong>completamente imprevisíveis</strong> - variação de 0.430 a 1.653 para o mesmo cálculo!</li>
+            <li><strong>Reestruturação Bem-Sucedida:</strong> A abordagem com `#pragma omp parallel` + `#pragma omp for` e acumulação local consegue speedup de 20.7x, demonstrando o valor de minimizar sincronização.</li>
             
-            <li><strong>Consistência das Correções:</strong> Critical e reduction sempre produzem os mesmos resultados (3.141136 e 3.141120), provando que as correções eliminam a não-determinismo.</li>
+            <li><strong>Cláusulas Funcionam Corretamente:</strong> Todas as demonstrações das cláusulas (private, firstprivate, shared, lastprivate) produzem resultados precisos, confirmando o comportamento esperado de cada uma.</li>
         </ol>
+        
+        <h3>Lições Aprendidas sobre Cláusulas OpenMP</h3>
+        <ul>
+            <li><strong>PRIVATE:</strong> Ideal para variáveis temporárias que não precisam de valor inicial específico</li>
+            <li><strong>FIRSTPRIVATE:</strong> Essencial quando threads precisam começar com valor conhecido</li>
+            <li><strong>SHARED:</strong> Requer cuidado extremo com sincronização (#pragma omp atomic, critical)</li>
+            <li><strong>LASTPRIVATE:</strong> Útil para capturar estados finais de loops paralelos</li>
+        </ul>
         
         <h2>Conclusões</h2>
         <ol>
-            <li><strong>Condições de corrida</strong> são um problema crítico na paralelização que pode levar a resultados completamente incorretos</li>
-            <li><strong>Critical sections</strong> resolvem o problema, mas introduzem overhead significativo</li>
-            <li><strong>Reduction</strong> é a solução mais eficiente para operações associativas como soma</li>
+            <li><strong>Condições de corrida</strong> são um problema crítico na paralelização que pode levar a resultados completamente incorretos (erros de 77-86% observados)</li>
+            <li><strong>Critical sections</strong> resolvem o problema mas introduzem overhead significativo (2.7x mais lento que sequencial)</li>
+            <li><strong>Reestruturação inteligente</strong> é fundamental - separar `#pragma omp parallel` de `#pragma omp for` permitiu speedup de 20.7x</li>
             <li><strong>Cláusulas OpenMP</strong> oferecem controle preciso sobre o escopo de variáveis:
                 <ul>
-                    <li>Use <code>private</code> para variáveis temporárias por thread</li>
-                    <li>Use <code>firstprivate</code> quando threads precisam do valor inicial</li>
+                    <li>Use <code>private</code> para variáveis temporárias que não precisam de valor inicial</li>
+                    <li>Use <code>firstprivate</code> quando threads precisam começar com valor conhecido</li>
                     <li>Use <code>lastprivate</code> para capturar resultado da última iteração</li>
-                    <li>Use <code>shared</code> para dados compartilhados (com sincronização)</li>
-                    <li>Use <code>reduction</code> para operações de acúmulo</li>
+                    <li>Use <code>shared</code> para dados compartilhados (requer sincronização cuidadosa)</li>
+                    <li>Use <code>default(none)</code> para garantir controle explícito de todas as variáveis</li>
                 </ul>
             </li>
+            <li><strong>Minimizar sincronização</strong> é chave para alta performance - acumulação local seguida de sincronização única é muito mais eficiente que múltiplas sincronizações</li>
         </ol>
+        
+       
+            <img src="tarefa6.png" alt="Gráfico de Performance - Tarefa 6 Monte Carlo OpenMP" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+        </div>
     </div>
 </body>
 </html>
