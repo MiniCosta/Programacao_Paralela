@@ -1,504 +1,629 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tarefa 5 - Contagem de Números Primos com OpenMP</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f8f9fa;
-            color: #333;
-        }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f8f9fa;
+        color: #333;
+      }
 
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+      .container {
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
 
-        h1 {
-            color: #2c3e50;
-            border-bottom: 3px solid #3498db;
-            padding-bottom: 10px;
-            margin-bottom: 30px;
-        }
+      h1 {
+        color: #2c3e50;
+        border-bottom: 3px solid #3498db;
+        padding-bottom: 10px;
+        margin-bottom: 30px;
+      }
 
-        h2 {
-            color: #34495e;
-            border-left: 4px solid #3498db;
-            padding-left: 15px;
-            margin-top: 30px;
-        }
+      h2 {
+        color: #34495e;
+        border-left: 4px solid #3498db;
+        padding-left: 15px;
+        margin-top: 30px;
+      }
 
-        h3 {
-            color: #2980b9;
-            margin-top: 25px;
-        }
+      h3 {
+        color: #2980b9;
+        margin-top: 25px;
+      }
 
-        h4 {
-            color: #7f8c8d;
-            margin-top: 20px;
-        }
+      h4 {
+        color: #7f8c8d;
+        margin-top: 20px;
+      }
 
-        .highlight {
-            background-color: #ecf0f1;
-            padding: 15px;
-            border-left: 4px solid #e74c3c;
-            margin: 15px 0;
-            border-radius: 5px;
-        }
+      .highlight {
+        background-color: #ecf0f1;
+        padding: 15px;
+        border-left: 4px solid #e74c3c;
+        margin: 15px 0;
+        border-radius: 5px;
+      }
 
-        .code-block {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            padding: 15px;
-            border-radius: 5px;
-            font-family: 'Courier New', monospace;
-            overflow-x: auto;
-            margin: 15px 0;
-        }
+      .code-block {
+        background-color: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 5px;
+        font-family: "Courier New", monospace;
+        overflow-x: auto;
+        margin: 15px 0;
+      }
 
-        .inline-code {
-            background-color: #ecf0f1;
-            padding: 2px 5px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            color: #e74c3c;
-        }
+      .inline-code {
+        background-color: #ecf0f1;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-family: "Courier New", monospace;
+        color: #e74c3c;
+      }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background-color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
 
-        th {
-            background-color: #3498db;
-            color: white;
-            padding: 12px;
-            text-align: left;
-        }
+      th {
+        background-color: #3498db;
+        color: white;
+        padding: 12px;
+        text-align: left;
+      }
 
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #ecf0f1;
-        }
+      td {
+        padding: 12px;
+        border-bottom: 1px solid #ecf0f1;
+      }
 
-        tr:nth-child(even) {
-            background-color: #f8f9fa;
+      tr:nth-child(even) {
+        background-color: #f8f9fa;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+      }
+
+      .metric-card {
+        background-color: #ecf0f1;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        border-left: 4px solid #3498db;
+      }
+
+      .metric-value {
+        font-size: 2em;
+        font-weight: bold;
+        color: #2c3e50;
+      }
+
+      .metric-label {
+        color: #7f8c8d;
+        margin-top: 5px;
+      }
+
+      .success {
+        color: #27ae60;
+        font-weight: bold;
+      }
+
+      .warning {
+        color: #f39c12;
+        font-weight: bold;
+      }
+
+      .error {
+        color: #e74c3c;
+        font-weight: bold;
+      }
+
+      .analysis-section {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+
+      .conclusion-box {
+        background-color: #d5f4e6;
+        border: 1px solid #27ae60;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+
+      .navigation {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        max-width: 200px;
+      }
+
+      .navigation ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .navigation li {
+        margin: 5px 0;
+      }
+
+      .navigation a {
+        color: #3498db;
+        text-decoration: none;
+        font-size: 0.9em;
+      }
+
+      .navigation a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 768px) {
+        .navigation {
+          position: static;
+          margin-bottom: 20px;
         }
 
         .metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
+          grid-template-columns: 1fr;
         }
-
-        .metric-card {
-            background-color: #ecf0f1;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            border-left: 4px solid #3498db;
-        }
-
-        .metric-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        .metric-label {
-            color: #7f8c8d;
-            margin-top: 5px;
-        }
-
-        .success {
-            color: #27ae60;
-            font-weight: bold;
-        }
-
-        .warning {
-            color: #f39c12;
-            font-weight: bold;
-        }
-
-        .error {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-
-        .analysis-section {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-
-        .conclusion-box {
-            background-color: #d5f4e6;
-            border: 1px solid #27ae60;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-
-        .navigation {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-width: 200px;
-        }
-
-        .navigation ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .navigation li {
-            margin: 5px 0;
-        }
-
-        .navigation a {
-            color: #3498db;
-            text-decoration: none;
-            font-size: 0.9em;
-        }
-
-        .navigation a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            .navigation {
-                position: static;
-                margin-bottom: 20px;
-            }
-            
-            .metrics {
-                grid-template-columns: 1fr;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <nav class="navigation">
-        <h4>Navegação</h4>
-        <ul>
-            <li><a href="#descricao">Descrição</a></li>
-            <li><a href="#analise-codigo">Análise do Código</a></li>
-            <li><a href="#overhead">Análise de Overhead</a></li>
-            <li><a href="#resultados">Resultados</a></li>
-            <li><a href="#conclusoes">Conclusões</a></li>
-        </ul>
+      <h4>Navegação</h4>
+      <ul>
+        <li><a href="#descricao">Descrição</a></li>
+        <li><a href="#analise-codigo">Análise do Código</a></li>
+        <li><a href="#overhead">Análise de Overhead</a></li>
+        <li><a href="#resultados">Resultados</a></li>
+        <li><a href="#conclusoes">Conclusões</a></li>
+      </ul>
     </nav>
 
     <div class="container">
-        <h1>Tarefa 5 - Contagem de Números Primos com OpenMP</h1>
+      <h1>Tarefa 5 - Contagem de Números Primos com OpenMP</h1>
 
-        <section id="descricao">
-            <h2>Descrição</h2>
-            <p>Este programa implementa um algoritmo para contar números primos entre 2 e um valor máximo <span class="inline-code">n</span>, comparando o desempenho entre versões sequencial e paralela usando OpenMP. O projeto demonstra conceitos fundamentais de programação paralela, incluindo paralelização de loops, operações de redução, e análise de performance.</p>
+      <section id="descricao">
+        <h2>Descrição</h2>
+        <p>
+          Este programa implementa um algoritmo para contar números primos entre
+          2 e um valor máximo <span class="inline-code">n</span>, comparando o
+          desempenho entre versões sequencial e paralela usando OpenMP. O
+          projeto demonstra conceitos fundamentais de programação paralela,
+          incluindo paralelização de loops, operações de redução, e análise de
+          performance.
+        </p>
 
-            <h3>Objetivo</h3>
-            <p>Demonstrar a aplicação prática de OpenMP em um problema computacionalmente intensivo, analisando quando a paralelização oferece vantagens reais e quais são os desafios envolvidos na programação paralela.</p>
+        <h3>Objetivo</h3>
+        <p>
+          Demonstrar a aplicação prática de OpenMP em um problema
+          computacionalmente intensivo, analisando quando a paralelização
+          oferece vantagens reais e quais são os desafios envolvidos na
+          programação paralela.
+        </p>
 
-            <h3>Funcionalidades</h3>
-            <ul>
-                <li><strong>Versão Sequencial</strong>: Conta primos usando um único thread</li>
-                <li><strong>Versão Paralela</strong>: Usa <span class="inline-code">#pragma omp parallel for</span> com redução para paralelizar o loop principal</li>
-                <li><strong>Comparação de Performance</strong>: Mede tempos de execução e calcula speedup e eficiência</li>
-                <li><strong>Análise de Overhead</strong>: Demonstra quando a paralelização compensa ou não</li>
-                <li><strong>Verificação de Correção</strong>: Confirma que ambas as versões produzem o mesmo resultado</li>
-            </ul>
-        </section>
+        <h3>Funcionalidades</h3>
+        <ul>
+          <li>
+            <strong>Versão Sequencial</strong>: Conta primos usando um único
+            thread
+          </li>
+          <li>
+            <strong>Versão Paralela</strong>: Usa
+            <span class="inline-code">#pragma omp parallel for</span> com
+            redução para paralelizar o loop principal
+          </li>
+          <li>
+            <strong>Comparação de Performance</strong>: Mede tempos de execução
+            e calcula speedup e eficiência
+          </li>
+          <li>
+            <strong>Análise de Overhead</strong>: Demonstra quando a
+            paralelização compensa ou não
+          </li>
+          <li>
+            <strong>Verificação de Correção</strong>: Confirma que ambas as
+            versões produzem o mesmo resultado
+          </li>
+        </ul>
+      </section>
 
-        <section id="analise-codigo">
-            <h2>Análise do Código</h2>
-            
-            <div class="highlight">
-                <h4>Elementos-chave da paralelização:</h4>
-                <ul>
-                    <li><span class="inline-code">parallel for</span>: Distribui iterações do loop entre threads</li>
-                    <li><span class="inline-code">reduction(+:contador)</span>: Evita condições de corrida na soma</li>
-                    <li>Cada thread mantém uma cópia local do contador</li>
-                    <li>Ao final, todas as cópias são somadas automaticamente</li>
-                </ul>
-            </div>
+      <section id="analise-codigo">
+        <h2>Análise do Código</h2>
 
-            <div class="metrics">
-                <div class="metric-card">
-                    <div class="metric-value">8x</div>
-                    <div class="metric-label">Speedup Teórico Máximo</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">3-4x</div>
-                    <div class="metric-label">Speedup Prático Observado</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">40-60%</div>
-                    <div class="metric-label">Eficiência Esperada</div>
-                </div>
-            </div>
-        </section>
+        <div class="highlight">
+          <h4>Elementos-chave da paralelização:</h4>
+          <ul>
+            <li>
+              <span class="inline-code">parallel for</span>: Distribui iterações
+              do loop entre threads
+            </li>
+            <li>
+              <span class="inline-code">reduction(+:contador)</span>: Evita
+              condições de corrida na soma
+            </li>
+            <li>Cada thread mantém uma cópia local do contador</li>
+            <li>Ao final, todas as cópias são somadas automaticamente</li>
+          </ul>
+        </div>
 
-        <section id="overhead">
-            <h2>Análise de Overhead e Performance</h2>
-            
-            <h3>Por que Versão Sequencial é Mais Rápida para n Pequenos?</h3>
-            <p>O <strong>overhead de paralelização</strong> consiste em vários componentes que podem superar os benefícios para problemas pequenos:</p>
+        <div class="metrics">
+          <div class="metric-card">
+            <div class="metric-value">8x</div>
+            <div class="metric-label">Speedup Teórico Máximo</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">3-4x</div>
+            <div class="metric-label">Speedup Prático Observado</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">40-60%</div>
+            <div class="metric-label">Eficiência Esperada</div>
+          </div>
+        </div>
+      </section>
 
-            <div class="analysis-section">
-                <h4>1. Custos de Criação de Threads</h4>
-                <div class="code-block">
-Tempo para criar 8 threads: ~0.0001-0.0002 segundos
-Tempo para computar 1000 primos: ~0.00001 segundos
-Resultado: Overhead é 10-20x maior que o trabalho útil!
-                </div>
+      <section id="overhead">
+        <h2>Análise de Overhead e Performance</h2>
 
-                <h4>2. Sincronização e Redução</h4>
-                <ul>
-                    <li><strong>Barrier implícita</strong>: Threads esperam umas pelas outras</li>
-                    <li><strong>Operação de redução</strong>: Combinar contadores parciais</li>
-                    <li><strong>Cache coherency</strong>: Sincronização entre núcleos do processador</li>
-                </ul>
+        <h3>Por que Versão Sequencial é Mais Rápida para n Pequenos?</h3>
+        <p>
+          O <strong>overhead de paralelização</strong> consiste em vários
+          componentes que podem superar os benefícios para problemas pequenos:
+        </p>
 
-                <h4>3. Distribuição de Carga</h4>
-                <p>Para n = 1000 com 8 threads:</p>
-                <ul>
-                    <li>Thread 0: números 2, 10, 18, 26... (125 números)</li>
-                    <li>Thread 1: números 3, 11, 19, 27... (125 números)</li>
-                    <li>...</li>
-                    <li>Cada thread processa muito poucos números</li>
-                </ul>
-            </div>
+        <div class="analysis-section">
+          <h4>1. Custos de Criação de Threads</h4>
+          <div class="code-block">
+            Tempo para criar 8 threads: ~0.0001-0.0002 segundos Tempo para
+            computar 1000 primos: ~0.00001 segundos Resultado: Overhead é 10-20x
+            maior que o trabalho útil!
+          </div>
 
-            <h4>Análise Quantitativa do Overhead</h4>
-            <table>
-                <thead>
-                    <tr>
-                        <th>n</th>
-                        <th>Tempo Seq</th>
-                        <th>Tempo Par</th>
-                        <th>Overhead</th>
-                        <th>Overhead/Trabalho</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1000</td>
-                        <td>0.000011s</td>
-                        <td>0.000113s</td>
-                        <td class="error">0.000102s</td>
-                        <td class="error">9.3x</td>
-                    </tr>
-                    <tr>
-                        <td>10000</td>
-                        <td>0.000190s</td>
-                        <td>0.004460s</td>
-                        <td class="error">0.004270s</td>
-                        <td class="error">22.5x</td>
-                    </tr>
-                    <tr>
-                        <td>100000</td>
-                        <td>0.003703s</td>
-                        <td>0.001484s</td>
-                        <td class="success">-0.002219s</td>
-                        <td class="success">Speedup!</td>
-                    </tr>
-                </tbody>
-            </table>
+          <h4>2. Sincronização e Redução</h4>
+          <ul>
+            <li>
+              <strong>Barrier implícita</strong>: Threads esperam umas pelas
+              outras
+            </li>
+            <li>
+              <strong>Operação de redução</strong>: Combinar contadores parciais
+            </li>
+            <li>
+              <strong>Cache coherency</strong>: Sincronização entre núcleos do
+              processador
+            </li>
+          </ul>
 
-            <div class="highlight">
-                <strong>Ponto de Break-even</strong>: ~100.000 números, onde o overhead se torna desprezível comparado ao trabalho computacional.
-            </div>
-        </section>
+          <h4>3. Distribuição de Carga</h4>
+          <p>Para n = 1000 com 8 threads:</p>
+          <ul>
+            <li>Thread 0: números 2, 10, 18, 26... (125 números)</li>
+            <li>Thread 1: números 3, 11, 19, 27... (125 números)</li>
+            <li>...</li>
+            <li>Cada thread processa muito poucos números</li>
+          </ul>
+        </div>
 
-        <section id="resultados">
-            <h2>Resultados Experimentais</h2>
-            
-            <h3>Performance Observada</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>n</th>
-                        <th>Primos</th>
-                        <th>Tempo Seq</th>
-                        <th>Tempo Par</th>
-                        <th>Speedup</th>
-                        <th>Eficiência</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1000</td>
-                        <td>168</td>
-                        <td>0.000011s</td>
-                        <td>0.000113s</td>
-                        <td class="error">0.09x</td>
-                        <td class="error">1.1%</td>
-                    </tr>
-                    <tr>
-                        <td>10000</td>
-                        <td>1229</td>
-                        <td>0.000190s</td>
-                        <td>0.004460s</td>
-                        <td class="error">0.04x</td>
-                        <td class="error">0.5%</td>
-                    </tr>
-                    <tr>
-                        <td>100000</td>
-                        <td>9592</td>
-                        <td>0.003703s</td>
-                        <td>0.001484s</td>
-                        <td class="warning">2.50x</td>
-                        <td class="warning">31.3%</td>
-                    </tr>
-                    <tr>
-                        <td>500000</td>
-                        <td>41538</td>
-                        <td>0.032372s</td>
-                        <td>0.007992s</td>
-                        <td class="success">4.05x</td>
-                        <td class="success">50.6%</td>
-                    </tr>
-                    <tr>
-                        <td>1000000</td>
-                        <td>78498</td>
-                        <td>0.083585s</td>
-                        <td>0.021391s</td>
-                        <td class="success">3.91x</td>
-                        <td class="success">48.9%</td>
-                    </tr>
-                </tbody>
-            </table>
+        <h4>Análise Quantitativa do Overhead</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>n</th>
+              <th>Tempo Seq</th>
+              <th>Tempo Par</th>
+              <th>Overhead</th>
+              <th>Overhead/Trabalho</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1000</td>
+              <td>0.000011s</td>
+              <td>0.000113s</td>
+              <td class="error">0.000102s</td>
+              <td class="error">9.3x</td>
+            </tr>
+            <tr>
+              <td>10000</td>
+              <td>0.000190s</td>
+              <td>0.004460s</td>
+              <td class="error">0.004270s</td>
+              <td class="error">22.5x</td>
+            </tr>
+            <tr>
+              <td>100000</td>
+              <td>0.003703s</td>
+              <td>0.001484s</td>
+              <td class="success">-0.002219s</td>
+              <td class="success">Speedup!</td>
+            </tr>
+          </tbody>
+        </table>
 
-            <h3>Interpretação dos Resultados</h3>
-            <div class="analysis-section">
-                <h4>1. Região de Overhead (n &lt; 100.000):</h4>
-                <ul>
-                    <li>Speedup &lt; 1: Versão sequencial vence</li>
-                    <li>Overhead de criação de threads domina</li>
-                    <li>Eficiência muito baixa (&lt;5%)</li>
-                </ul>
+        <div class="highlight">
+          <strong>Ponto de Break-even</strong>: ~100.000 números, onde o
+          overhead se torna desprezível comparado ao trabalho computacional.
+        </div>
+      </section>
 
-                <h4>2. Região de Transição (n ≈ 100.000):</h4>
-                <ul>
-                    <li>Ponto de break-even</li>
-                    <li>Speedup começa a aparecer</li>
-                    <li>Eficiência ainda baixa (~30%)</li>
-                </ul>
+      <section id="resultados">
+        <h2>Resultados Experimentais</h2>
 
-                <h4>3. Região Eficiente (n &gt; 500.000):</h4>
-                <ul>
-                    <li>Speedup estável ~4x</li>
-                    <li>Eficiência ~50%</li>
-                    <li>Trabalho computacional justifica overhead</li>
-                </ul>
-            </div>
-        </section>
+        <h3>Performance Observada</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>n</th>
+              <th>Primos</th>
+              <th>Tempo Seq</th>
+              <th>Tempo Par</th>
+              <th>Speedup</th>
+              <th>Eficiência</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1000</td>
+              <td>168</td>
+              <td>0.000011s</td>
+              <td>0.000113s</td>
+              <td class="error">0.09x</td>
+              <td class="error">1.1%</td>
+            </tr>
+            <tr>
+              <td>10000</td>
+              <td>1229</td>
+              <td>0.000190s</td>
+              <td>0.004460s</td>
+              <td class="error">0.04x</td>
+              <td class="error">0.5%</td>
+            </tr>
+            <tr>
+              <td>100000</td>
+              <td>9592</td>
+              <td>0.003703s</td>
+              <td>0.001484s</td>
+              <td class="warning">2.50x</td>
+              <td class="warning">31.3%</td>
+            </tr>
+            <tr>
+              <td>500000</td>
+              <td>41538</td>
+              <td>0.032372s</td>
+              <td>0.007992s</td>
+              <td class="success">4.05x</td>
+              <td class="success">50.6%</td>
+            </tr>
+            <tr>
+              <td>1000000</td>
+              <td>78498</td>
+              <td>0.083585s</td>
+              <td>0.021391s</td>
+              <td class="success">3.91x</td>
+              <td class="success">48.9%</td>
+            </tr>
+          </tbody>
+        </table>
 
-        <section id="conclusoes">
-            <h2>Conclusões e Lições Aprendidas</h2>
-            
-            <div class="conclusion-box">
-                <h3>Quando Usar Paralelização</h3>
-                
-                <h4 class="success">✅ SIM - Quando:</h4>
-                <ul>
-                    <li>Problema é computacionalmente intensivo</li>
-                    <li>Dados são independentes entre iterações</li>
-                    <li>Overhead é pequeno comparado ao trabalho</li>
-                    <li>n &gt; 100.000 (para este problema específico)</li>
-                </ul>
+        <h3>Interpretação dos Resultados</h3>
+        <div class="analysis-section">
+          <h4>1. Região de Overhead (n &lt; 100.000):</h4>
+          <ul>
+            <li>Speedup &lt; 1: Versão sequencial vence</li>
+            <li>Overhead de criação de threads domina</li>
+            <li>Eficiência muito baixa (&lt;5%)</li>
+          </ul>
 
-                <h4 class="error">❌ NÃO - Quando:</h4>
-                <ul>
-                    <li>Problema muito pequeno (overhead domina)</li>
-                    <li>Dependências entre dados</li>
-                    <li>Sincronização frequente necessária</li>
-                    <li>Recursos limitados (single-core, memory-bound)</li>
-                </ul>
-            </div>
+          <h4>2. Região de Transição (n ≈ 100.000):</h4>
+          <ul>
+            <li>Ponto de break-even</li>
+            <li>Speedup começa a aparecer</li>
+            <li>Eficiência ainda baixa (~30%)</li>
+          </ul>
 
-            <h3>Principais Aprendizados</h3>
-            <ol>
-                <li><strong>Overhead é Real</strong>: Paralelização não é sempre benéfica</li>
-                <li><strong>Granularidade Importa</strong>: Muito trabalho fino gera overhead</li>
-                <li><strong>Medição é Essencial</strong>: Sempre medir antes de otimizar</li>
-                <li><strong>Correção Primeiro</strong>: Garantir resultado correto antes de otimizar</li>
-                <li><strong>Escalabilidade Limitada</strong>: Lei de Amdahl sempre se aplica</li>
-            </ol>
+          <h4>3. Região Eficiente (n &gt; 500.000):</h4>
+          <ul>
+            <li>Speedup estável ~4x</li>
+            <li>Eficiência ~50%</li>
+            <li>Trabalho computacional justifica overhead</li>
+          </ul>
+        </div>
+      </section>
 
-            <h3>Conceitos Fundamentais Demonstrados</h3>
-            <ul>
-                <li><strong>Paralelização de Loops</strong>: <span class="inline-code">#pragma omp parallel for</span></li>
-                <li><strong>Operações de Redução</strong>: <span class="inline-code">reduction(+:contador)</span></li>
-                <li><strong>Medição Precisa</strong>: <span class="inline-code">omp_get_wtime()</span></li>
-                <li><strong>Análise de Performance</strong>: Speedup e eficiência</li>
-                <li><strong>Overhead Analysis</strong>: Identificação de custos escondidos</li>
-                <li><strong>Load Balancing</strong>: Distribuição de trabalho entre threads</li>
-            </ul>
-        </section>
+      <section id="conclusoes">
+        <h2>Conclusões e Lições Aprendidas</h2>
 
-        <footer style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #ecf0f1; text-align: center; color: #7f8c8d;">
-            <p><strong>Ambiente de Teste:</strong> 8 threads disponíveis, GCC com flags <span class="inline-code">-fopenmp -O2 -lm</span>, Sistema Linux</p>
-            <p><em>Este projeto demonstra que programação paralela eficiente requer compreensão profunda dos trade-offs entre overhead, granularidade, e distribuição de carga. Sempre meça antes de otimizar!</em></p>
-        </footer>
+        <div class="conclusion-box">
+          <h3>Quando Usar Paralelização</h3>
+
+          <h4 class="success">✅ SIM - Quando:</h4>
+          <ul>
+            <li>Problema é computacionalmente intensivo</li>
+            <li>Dados são independentes entre iterações</li>
+            <li>Overhead é pequeno comparado ao trabalho</li>
+            <li>n &gt; 100.000 (para este problema específico)</li>
+          </ul>
+
+          <h4 class="error">❌ NÃO - Quando:</h4>
+          <ul>
+            <li>Problema muito pequeno (overhead domina)</li>
+            <li>Dependências entre dados</li>
+            <li>Sincronização frequente necessária</li>
+            <li>Recursos limitados (single-core, memory-bound)</li>
+          </ul>
+        </div>
+
+        <h3>Principais Aprendizados</h3>
+        <ol>
+          <li>
+            <strong>Overhead é Real</strong>: Paralelização não é sempre
+            benéfica
+          </li>
+          <li>
+            <strong>Granularidade Importa</strong>: Muito trabalho fino gera
+            overhead
+          </li>
+          <li>
+            <strong>Medição é Essencial</strong>: Sempre medir antes de otimizar
+          </li>
+          <li>
+            <strong>Correção Primeiro</strong>: Garantir resultado correto antes
+            de otimizar
+          </li>
+          <li>
+            <strong>Escalabilidade Limitada</strong>: Lei de Amdahl sempre se
+            aplica
+          </li>
+        </ol>
+
+        <h3>Conceitos Fundamentais Demonstrados</h3>
+        <ul>
+          <li>
+            <strong>Paralelização de Loops</strong>:
+            <span class="inline-code">#pragma omp parallel for</span>
+          </li>
+          <li>
+            <strong>Operações de Redução</strong>:
+            <span class="inline-code">reduction(+:contador)</span>
+          </li>
+          <li>
+            <strong>Medição Precisa</strong>:
+            <span class="inline-code">omp_get_wtime()</span>
+          </li>
+          <li><strong>Análise de Performance</strong>: Speedup e eficiência</li>
+          <li>
+            <strong>Overhead Analysis</strong>: Identificação de custos
+            escondidos
+          </li>
+          <li>
+            <strong>Load Balancing</strong>: Distribuição de trabalho entre
+            threads
+          </li>
+        </ul>
+      </section>
+
+      <footer
+        style="
+          margin-top: 50px;
+          padding-top: 20px;
+          border-top: 1px solid #ecf0f1;
+          text-align: center;
+          color: #7f8c8d;
+        "
+      >
+        <p>
+          <strong>Ambiente de Teste:</strong> 8 threads disponíveis, GCC com
+          flags <span class="inline-code">-fopenmp -O2 -lm</span>, Sistema Linux
+        </p>
+        <p>
+          <em
+            >Este projeto demonstra que programação paralela eficiente requer
+            compreensão profunda dos trade-offs entre overhead, granularidade, e
+            distribuição de carga. Sempre meça antes de otimizar!</em
+          >
+        </p>
+      </footer>
     </div>
 
     <script>
-        // Smooth scrolling para navegação
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
+      // Smooth scrolling para navegação
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          document.querySelector(this.getAttribute("href")).scrollIntoView({
+            behavior: "smooth",
+          });
+        });
+      });
+
+      // Highlight da seção atual na navegação
+      window.addEventListener("scroll", function () {
+        let current = "";
+        const sections = document.querySelectorAll("section");
+
+        sections.forEach((section) => {
+          const sectionTop = section.offsetTop;
+          const sectionHeight = section.clientHeight;
+          if (pageYOffset >= sectionTop - 60) {
+            current = section.getAttribute("id");
+          }
         });
 
-        // Highlight da seção atual na navegação
-        window.addEventListener('scroll', function() {
-            let current = '';
-            const sections = document.querySelectorAll('section');
-            
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop;
-                const sectionHeight = section.clientHeight;
-                if (pageYOffset >= sectionTop - 60) {
-                    current = section.getAttribute('id');
-                }
-            });
-
-            document.querySelectorAll('.navigation a').forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') === '#' + current) {
-                    link.classList.add('active');
-                }
-            });
+        document.querySelectorAll(".navigation a").forEach((link) => {
+          link.classList.remove("active");
+          if (link.getAttribute("href") === "#" + current) {
+            link.classList.add("active");
+          }
         });
+      });
     </script>
 
     <style>
-        .navigation a.active {
-            font-weight: bold;
-            color: #2c3e50;
-        }
+      .navigation a.active {
+        font-weight: bold;
+        color: #2c3e50;
+      }
+
+      .image-section {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 20px;
+        margin: 30px 0;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .image-section img {
+        max-width: 100%;
+        height: auto;
+        border: 2px solid #e74c3c;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .image-caption {
+        margin-top: 15px;
+        font-style: italic;
+        color: #666;
+        font-size: 14px;
+      }
     </style>
-</body>
+
+    <!-- Seção da Imagem -->
+    <section class="image-section">
+      <h2>Código</h2>
+      <img
+        src="tarefa5.png"
+        alt="Código de Tarefa 5 - Números Primos com OpenMP"
+      />
+    </section>
+  </body>
 </html>
