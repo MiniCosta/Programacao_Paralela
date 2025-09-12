@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefa 8: Estimativa Estocástica de π com OpenMP</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c5aa0;
+            border-bottom: 3px solid #2c5aa0;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #34495e;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+        h4 {
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+        }
+        pre {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            border-left: 4px solid #3182ce;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e8f4f8;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .warning {
+            color: #e67e22;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+        .math {
+            font-style: italic;
+            background-color: #f0f8ff;
+            padding: 10px;
+            border-left: 3px solid #4a90e2;
+            margin: 10px 0;
+        }
+        .cache-discussion {
+            background-color: #f8f9fa;
+            border: 2px solid #6f42c1;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .cache-discussion h3 {
+            color: #6f42c1;
+            margin-top: 0;
+        }
+        .code-image {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .code-image img {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        ul li {
+            margin-bottom: 8px;
+        }
+        .algorithm-box {
+            background-color: #e8f5e8;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1> Tarefa 8: Coerência de Cache e Falso Compartilhamento</h1>
+
+        <h2><span class="emoji">📋</span> Descrição do Problema</h2>
+        <p>Este projeto implementa quatro versões diferentes de estimativa estocástica de π usando o método de Monte Carlo com paralelização OpenMP. O objetivo é comparar diferentes estratégias de sincronização e geradores de números aleatórios.</p>
+
+        <h2><span class="emoji">🎯</span> Objetivos</h2>
+        <ol>
+            <li><strong>Implementar estimativa de π</strong> usando método de Monte Carlo</li>
+            <li><strong>Comparar estratégias de sincronização</strong>:
+                <ul>
+                    <li>Região crítica (<code>#pragma omp critical</code>)</li>
+                    <li>Vetorização (cada thread escreve em posição própria)</li>
+                </ul>
+            </li>
+            <li><strong>Comparar geradores de números aleatórios</strong>:
+                <ul>
+                    <li><code>rand()</code> (não thread-safe)</li>
+                    <li><code>rand_r()</code> (thread-safe)</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2><span class="emoji">🧮</span> Teoria: Método de Monte Carlo para π</h2>
+
+        <h3>Fundamento Matemático</h3>
+        <p>O método utiliza a relação entre a área de um círculo e um quadrado:</p>
+        <div class="math">
+            Área do círculo = π × r²<br>
+            Área do quadrado = (2r)²<br><br>
+            Razão = π × r² / (2r)² = π/4
+        </div>
+
+        <h3>Algoritmo</h3>
+        <div class="algorithm-box">
+            <ol>
+                <li>Gerar pontos aleatórios (x,y) no intervalo [0,1]</li>
+                <li>Verificar se o ponto está dentro do círculo: <code>x² + y² ≤ 1</code></li>
+                <li>Contar quantos pontos estão dentro do círculo</li>
+                <li>Estimar π: <code>π ≈ 4 × (pontos_dentro / total_pontos)</code></li>
+            </ol>
+        </div>
+
+        <h2><span class="emoji">🔧</span> Implementações</h2>
+
+        <h3>Versão 1: <code>rand()</code> + Região Crítica</h3>
+        <pre><code>#pragma omp parallel num_threads(nthreads)
+{
+    long long int acertos_priv = 0;
+    #pragma omp for
+    for (long long int i = 0; i < N; i++) {
+        double x = (double)rand() / RAND_MAX;
+        double y = (double)rand() / RAND_MAX;
+        if (x*x + y*y <= 1.0) acertos_priv++;
+    }
+    #pragma omp critical
+    acertos += acertos_priv;
+}</code></pre>
+
+        <p><strong>Características:</strong></p>
+        <ul>
+            <li><span class="success">✅</span> Cada thread acumula em variável privada</li>
+            <li><span class="success">✅</span> Sincronização por região crítica</li>
+            <li><span class="error">❌</span> <code>rand()</code> não é thread-safe</li>
+            <li><span class="error">❌</span> Possível contenção na região crítica</li>
+        </ul>
+
+        <h3>Versão 2: <code>rand()</code> + Vetor Compartilhado</h3>
+        <pre><code>#pragma omp parallel num_threads(nthreads)
+{
+    int tid = omp_get_thread_num();
+    long long int acertos_priv = 0;
+    #pragma omp for
+    for (long long int i = 0; i < N; i++) {
+        double x = (double)rand() / RAND_MAX;
+        double y = (double)rand() / RAND_MAX;
+        if (x*x + y*y <= 1.0) acertos_priv++;
+    }
+    acertos_vet[tid] = acertos_priv;
+}
+// Soma serial após região paralela
+for (int i = 0; i < nthreads; i++) acertos_total += acertos_vet[i];</code></pre>
+
+        <p><strong>Características:</strong></p>
+        <ul>
+            <li><span class="success">✅</span> Elimina contenção (cada thread escreve em posição própria)</li>
+            <li><span class="success">✅</span> Soma serial após paralelização</li>
+            <li><span class="error">❌</span> <code>rand()</code> não é thread-safe</li>
+            <li><span class="success">✅</span> Melhor escalabilidade</li>
+        </ul>
+
+        <h3>Versão 3: <code>rand_r()</code> + Região Crítica</h3>
+        <pre><code>#pragma omp parallel num_threads(nthreads)
+{
+    unsigned int seed = (unsigned int)time(NULL) ^ omp_get_thread_num();
+    long long int acertos_priv = 0;
+    #pragma omp for
+    for (long long int i = 0; i < N; i++) {
+        double x = (double)rand_r(&seed) / RAND_MAX;
+        double y = (double)rand_r(&seed) / RAND_MAX;
+        if (x*x + y*y <= 1.0) acertos_priv++;
+    }
+    #pragma omp critical
+    acertos += acertos_priv;
+}</code></pre>
+
+        <p><strong>Características:</strong></p>
+        <ul>
+            <li><span class="success">✅</span> <code>rand_r()</code> é thread-safe</li>
+            <li><span class="success">✅</span> Cada thread tem seu próprio seed</li>
+            <li><span class="warning">❌</span> Possível contenção na região crítica</li>
+            <li><span class="success">✅</span> Geração de números aleatórios correta</li>
+        </ul>
+
+        <h3>Versão 4: <code>rand_r()</code> + Vetor Compartilhado</h3>
+        <pre><code>#pragma omp parallel num_threads(nthreads)
+{
+    int tid = omp_get_thread_num();
+    unsigned int seed = (unsigned int)time(NULL) ^ tid;
+    long long int acertos_priv = 0;
+    #pragma omp for
+    for (long long int i = 0; i < N; i++) {
+        double x = (double)rand_r(&seed) / RAND_MAX;
+        double y = (double)rand_r(&seed) / RAND_MAX;
+        if (x*x + y*y <= 1.0) acertos_priv++;
+    }
+    acertos_vet[tid] = acertos_priv;
+}</code></pre>
+
+        <p><strong>Características:</strong></p>
+        <ul>
+            <li><span class="success">✅</span> <code>rand_r()</code> é thread-safe</li>
+            <li><span class="success">✅</span> Elimina contenção</li>
+            <li><span class="success">✅</span> Melhor escalabilidade</li>
+            <li><span class="success">✅</span> Implementação mais robusta</li>
+        </ul>
+
+        <h2><span class="emoji">📊</span> Resultados Experimentais</h2>
+
+        <h3>Configuração do Teste</h3>
+        <ul>
+            <li><strong>Pontos:</strong> 100.000.000</li>
+            <li><strong>Threads:</strong> 4</li>
+            <li><strong>Compilador:</strong> GCC com <code>-fopenmp</code></li>
+        </ul>
+
+        <h3>Tempos de Execução</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Versão</th>
+                    <th>Gerador</th>
+                    <th>Sincronização</th>
+                    <th>Tempo (s)</th>
+                    <th>π Estimado</th>
+                    <th>Speedup</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><code>rand()</code></td>
+                    <td>Critical</td>
+                    <td>~18.0</td>
+                    <td>3.1416653</td>
+                    <td>1.0x</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><code>rand()</code></td>
+                    <td>Vetor</td>
+                    <td>~17.4</td>
+                    <td>3.1413922</td>
+                    <td>1.03x</td>
+                </tr>
+                <tr style="background-color: #d4edda;">
+                    <td>3</td>
+                    <td><code>rand_r()</code></td>
+                    <td>Critical</td>
+                    <td>~0.48</td>
+                    <td>3.1416518</td>
+                    <td>37.5x</td>
+                </tr>
+                <tr style="background-color: #d1ecf1;">
+                    <td>4</td>
+                    <td><code>rand_r()</code></td>
+                    <td>Vetor</td>
+                    <td>~0.44</td>
+                    <td>3.1416518</td>
+                    <td>40.9x</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Análise dos Resultados</h3>
+
+        <h4><span class="emoji">🚀</span> Performance Dramática com <code>rand_r()</code></h4>
+        <ul>
+            <li><strong>37-40x speedup</strong> ao trocar <code>rand()</code> por <code>rand_r()</code></li>
+            <li>Diferença não é apenas thread-safety, mas contenção interna</li>
+        </ul>
+
+        <h4><span class="emoji">🔒</span> Impacto da Sincronização</h4>
+        <ul>
+            <li>Diferença pequena entre critical e vetor (~8% melhoria)</li>
+            <li>Vetor compartilhado tem vantagem em escalabilidade</li>
+        </ul>
+
+        <h4><span class="emoji">🎲</span> Thread-Safety dos Geradores</h4>
+        <ul>
+            <li><code>rand()</code>: Usa estado global compartilhado → contenção severa</li>
+            <li><code>rand_r()</code>: Estado local por thread → paralelismo real</li>
+        </ul>
+
+        <div class="cache-discussion">
+            <h2><span class="emoji">🧠</span> Análise de Coerência de Cache e Falso Compartilhamento</h2>
+            
+            <h3>Comportamento dos Geradores de Números Aleatórios</h3>
+            
+            <h4><code>rand()</code> - Contenção Extrema</h4>
+            <p>A função <code>rand()</code> utiliza um estado global compartilhado entre todas as threads. Isso causa:</p>
+            <ul>
+                <li><strong>Mutex interno:</strong> Cada chamada de <code>rand()</code> adquire um lock global</li>
+                <li><strong>Serialização completa:</strong> Apenas uma thread pode gerar números por vez</li>
+                <li><strong>Cache thrashing:</strong> Constante invalidação da linha de cache contendo o estado</li>
+                <li><strong>Contenção de memória:</strong> Todas as threads competem pelo mesmo endereço de memória</li>
+            </ul>
+            
+            <div class="highlight">
+                <strong>Resultado:</strong> Mesmo com 4 threads, o programa roda essencialmente em modo serial devido à contenção no gerador de números aleatórios, explicando os tempos de ~17-18 segundos.
+            </div>
+
+            <h4><code>rand_r()</code> - Paralelismo Real</h4>
+            <p>A função <code>rand_r()</code> permite que cada thread mantenha seu próprio estado:</p>
+            <ul>
+                <li><strong>Estado local:</strong> Cada thread tem sua variável <code>seed</code> privada</li>
+                <li><strong>Cache locality:</strong> O seed fica na cache L1 da thread, evitando acessos à memória</li>
+                <li><strong>Paralelismo verdadeiro:</strong> Threads operam independentemente</li>
+                <li><strong>Ausência de contenção:</strong> Não há compartilhamento de dados entre threads durante a geração</li>
+            </ul>
+
+            <h3>Estratégias de Sincronização e Cache</h3>
+            
+            <h4>Região Crítica (#pragma omp critical)</h4>
+            <ul>
+                <li><strong>Contenção pontual:</strong> Apenas na soma final dos resultados</li>
+                <li><strong>Baixo overhead:</strong> Região crítica é executada apenas uma vez por thread</li>
+                <li><strong>Cache coherence:</strong> Linha de cache da variável <code>acertos</code> é invalidada a cada update</li>
+            </ul>
+
+            <h4>Vetor Compartilhado</h4>
+            <ul>
+                <li><strong>Falso compartilhamento potencial:</strong> Se elementos do vetor estiverem na mesma linha de cache</li>
+                <li><strong>Mitigação:</strong> Com 4 threads e <code>long long int</code> (8 bytes), elementos ficam em linhas diferentes</li>
+                <li><strong>Acesso sequencial:</strong> A soma final beneficia da localidade espacial</li>
+                <li><strong>Menor contenção:</strong> Cada thread escreve em posição única, evitando invalidações</li>
+            </ul>
+
+            <h3>Análise Detalhada por Versão</h3>
+            
+            <div style="background-color: #fff2f2; padding: 15px; border-left: 4px solid #e74c3c; margin: 10px 0;">
+                <h4>Versões 1 e 2 (rand()): ~17-18s</h4>
+                <p><strong>Gargalo dominante:</strong> Serialização em <code>rand()</code></p>
+                <ul>
+                    <li>Diferença mínima entre critical e vetor (17.4s vs 18.0s)</li>
+                    <li>O overhead da sincronização é irrelevante comparado à contenção do <code>rand()</code></li>
+                    <li>Cache miss rate alto devido ao mutex global</li>
+                </ul>
+            </div>
+
+            <div style="background-color: #f2fff2; padding: 15px; border-left: 4px solid #27ae60; margin: 10px 0;">
+                <h4>Versões 3 e 4 (rand_r()): ~0.44-0.48s</h4>
+                <p><strong>Paralelismo efetivo:</strong> Speedup de ~37-40x</p>
+                <ul>
+                    <li>Diferença pequena mas consistente entre critical e vetor (0.48s vs 0.44s)</li>
+                    <li>Vetor tem ~8% melhor performance devido à ausência de contenção na sincronização</li>
+                    <li>Alta localidade de cache para o seed de cada thread</li>
+                    <li>Paralelismo próximo ao ideal (4x teórico vs 37-40x observado indica overhead baixo)</li>
+                </ul>
+            </div>
+
+            <h3>Implicações para Escalabilidade</h3>
+            <ul>
+                <li><strong>Versões 1-2:</strong> Não escalam devido à serialização em <code>rand()</code></li>
+                <li><strong>Versão 3:</strong> Escalável mas limitada pela região crítica em muitas threads</li>
+                <li><strong>Versão 4:</strong> Melhor escalabilidade, ideal para muitas threads</li>
+            </ul>
+
+            <div class="highlight">
+                <strong>Conclusão chave:</strong> A escolha do gerador de números aleatórios tem impacto muito maior na performance do que a estratégia de sincronização, demonstrando a importância crítica da coerência de cache em aplicações paralelas.
+            </div>
+        </div>
+
+        <h2><span class="emoji">💡</span> Conclusões</h2>
+
+        <h3>Lições Aprendidas</h3>
+        <ol>
+            <li><strong>Thread-Safety é Crucial:</strong> A diferença entre <code>rand()</code> e <code>rand_r()</code> domina completamente a performance</li>
+            <li><strong>Contenção Interna:</strong> <code>rand()</code> tem mutex interno que serializa execução</li>
+            <li><strong>Estratégia de Sincronização:</strong> Vetor compartilhado é ligeiramente melhor que região crítica</li>
+            <li><strong>Escalabilidade:</strong> Versão 4 (<code>rand_r()</code> + vetor) é a mais escalável</li>
+        </ol>
+
+        <h3>Recomendações</h3>
+        <ul>
+            <li><strong>Use sempre <code>rand_r()</code></strong> em código paralelo</li>
+            <li><strong>Prefira vetorização</strong> para reduzir contenção</li>
+            <li><strong>Inicialize seeds únicos</strong> por thread</li>
+            <li><strong>Meça performance</strong> de diferentes estratégias</li>
+        </ul>
+
+        <h2><span class="emoji">📚</span> Conceitos Importantes</h2>
+
+        <h3>OpenMP</h3>
+        <ul>
+            <li><strong><code>#pragma omp parallel</code>:</strong> Cria região paralela</li>
+            <li><strong><code>#pragma omp for</code>:</strong> Distribui iterações entre threads</li>
+            <li><strong><code>#pragma omp critical</code>:</strong> Seção crítica (acesso exclusivo)</li>
+            <li><strong><code>omp_get_thread_num()</code>:</strong> ID da thread atual</li>
+        </ul>
+
+        <h3>Thread-Safety</h3>
+        <ul>
+            <li><strong>Thread-safe:</strong> Função pode ser chamada simultaneamente por múltiplas threads</li>
+            <li><strong>Race condition:</strong> Resultado depende da ordem de execução das threads</li>
+            <li><strong>Contenção:</strong> Threads competem por mesmo recurso</li>
+        </ul>
+
+        <h3>Estratégias de Redução</h3>
+        <ul>
+            <li><strong>Critical section:</strong> Serializa acesso a variável compartilhada</li>
+            <li><strong>Private accumulation:</strong> Cada thread acumula localmente, depois combina</li>
+            <li><strong>Array indexing:</strong> Cada thread escreve em posição única</li>
+        </ul>
+
+        <div class="code-image">
+            <h2><span class="emoji">💻</span> Código Fonte</h2>
+            <img src="tarefa8.png" alt="Código fonte da Tarefa 8" title="Implementação completa das 4 versões do algoritmo Monte Carlo">
+            <p><em>Implementação completa das quatro versões do algoritmo Monte Carlo para estimativa de π</em></p>
+        </div>
+
+        <hr style="margin: 40px 0; border: none; border-top: 2px solid #eee;">
+        <p style="text-align: center; color: #7f8c8d; font-style: italic;">
+            <em>Este projeto demonstra conceitos fundamentais de programação paralela, thread-safety e otimização de performance em aplicações científicas.</em>
+        </p>
+    </div>
+</body>
+</html>
