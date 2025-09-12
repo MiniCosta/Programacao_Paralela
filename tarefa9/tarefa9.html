@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefa 9: Regiões críticas nomeadas e Locks explícitos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2980b9;
+            margin-top: 25px;
+        }
+        h4 {
+            color: #8e44ad;
+            margin-top: 20px;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+        }
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        pre code {
+            background-color: transparent;
+            color: #ecf0f1;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .warning {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        ul {
+            padding-left: 25px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .image-container {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            border: 2px dashed #3498db;
+        }
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .image-caption {
+            margin-top: 15px;
+            font-style: italic;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tarefa 9: Regiões críticas nomeadas e Locks explícitos</h1>
+
+        <h2>Descrição</h2>
+        <p>Este programa demonstra o uso de regiões críticas nomeadas e locks explícitos em OpenMP para realizar inserções concorrentes em múltiplas listas encadeadas, garantindo a integridade dos dados e evitando condições de corrida.</p>
+
+        <h2>Locks Explícitos (Regiões Críticas Nomeadas)</h2>
+        
+        <h4>O que são Locks?</h4>
+        <div class="highlight">
+            <p><strong>Lock</strong> (ou mutex - mutual exclusion) é um mecanismo de sincronização que garante acesso <strong>mutuamente exclusivo</strong> a um recurso compartilhado. Funciona como uma "chave digital" que apenas uma thread pode possuir por vez.</p>
+        </div>
+
+        <h4>Conceito Fundamental</h4>
+        <p>Um lock possui dois estados:</p>
+        <ul>
+            <li><strong>🔓 Desbloqueado (unlocked)</strong>: Recurso disponível, qualquer thread pode adquirir</li>
+            <li><strong>🔒 Bloqueado (locked)</strong>: Recurso ocupado, outras threads ficam em espera</li>
+        </ul>
+
+        <h4>Operações Básicas de Lock</h4>
+        <pre><code>// 1. Declaração do lock
+omp_lock_t meu_lock;
+
+// 2. Inicialização
+omp_init_lock(&amp;meu_lock);
+
+// 3. Adquirir o lock (bloqueia se necessário)
+omp_set_lock(&amp;meu_lock);
+// SEÇÃO CRÍTICA - apenas uma thread executa
+omp_unset_lock(&amp;meu_lock);
+
+// 4. Destruição (limpeza)
+omp_destroy_lock(&amp;meu_lock);</code></pre>
+
+        <h4>Exemplo Simples de Uso: Contador Compartilhado</h4>
+        <pre><code>int contador = 0;
+omp_lock_t lock_contador;
+
+// Thread segura incrementando contador
+omp_set_lock(&amp;lock_contador);
+contador++;  // Seção crítica protegida
+printf("Contador: %d\n", contador);
+omp_unset_lock(&amp;lock_contador);</code></pre>
+
+        <h4>Implementação no Nosso Projeto</h4>
+        <ul>
+            <li>Cada lista possui seu próprio lock (<code>omp_lock_t</code>)</li>
+            <li>Inserções em listas diferentes podem ocorrer simultaneamente</li>
+            <li>Inserções na mesma lista são serializadas automaticamente</li>
+            <li>Uso de <code>omp_set_lock()</code> e <code>omp_unset_lock()</code> para controle explícito</li>
+        </ul>
+
+        <h4>Vantagem dos Locks vs Regiões Críticas</h4>
+        <div class="highlight">
+            <p><strong>Flexibilidade:</strong> Locks podem ser criados dinamicamente em runtime, enquanto regiões críticas nomeadas devem ser definidas estaticamente no código.</p>
+        </div>
+
+        <h3>Por que Locks Explícitos são Necessários?</h3>
+
+        <h4>Limitações das Regiões Críticas Tradicionais</h4>
+
+        <h5>1. <strong>Problema da Serialização Global</strong></h5>
+        <pre><code>// Abordagem INADEQUADA com região crítica global
+#pragma omp critical
+{
+    insert_element(random_list, value);  // TODAS as inserções serializadas!
+}</code></pre>
+        <p><strong>Problema</strong>: Mesmo inserindo em listas diferentes, threads ficam bloqueadas.</p>
+
+        <h5>2. <strong>Regiões Críticas Nomeadas - Limitação Estática</strong></h5>
+        <pre><code>// Abordagem LIMITADA com nomes fixos
+#pragma omp critical(list1)
+{
+    insert_element(&amp;list1, value);
+}
+
+#pragma omp critical(list2)
+{
+    insert_element(&amp;list2, value);
+}</code></pre>
+        <p><strong>Problema</strong>: Funciona apenas para número fixo e predefinido de listas.</p>
+
+        <h4>Solução com Locks Explícitos</h4>
+
+        <h5>3. <strong>Locks Dinâmicos - Solução Escalável</strong></h5>
+        <pre><code>//SOLUÇÃO: lock por lista, dinamicamente alocado
+omp_set_lock(&amp;lists[chosen_list].lock);
+insert_element(&amp;lists[chosen_list], value);
+omp_unset_lock(&amp;lists[chosen_list].lock);</code></pre>
+
+        <h4>Vantagens dos Locks Explícitos</h4>
+        <ol>
+            <li><strong>Granularidade Dinâmica</strong>: Cada lista tem seu lock individual</li>
+            <li><strong>Escalabilidade</strong>: Funciona com qualquer número N de listas</li>
+            <li><strong>Paralelismo Máximo</strong>: Threads em listas diferentes não se bloqueiam</li>
+            <li><strong>Flexibilidade</strong>: Número de recursos protegidos determinado em runtime</li>
+            <li><strong>Performance</strong>: Contenção mínima entre threads</li>
+        </ol>
+
+        <h4>Análise Comparativa</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Abordagem</th>
+                    <th>Paralelismo</th>
+                    <th>Escalabilidade</th>
+                    <th>Flexibilidade</th>
+                    <th>Performance</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>#pragma omp critical</code></td>
+                    <td class="error">❌ Serialização total</td>
+                    <td class="error">❌ Não escala</td>
+                    <td class="error">❌ Inflexível</td>
+                    <td class="error">❌ Baixa</td>
+                </tr>
+                <tr>
+                    <td><code>#pragma omp critical(nome)</code></td>
+                    <td class="success">✅ Parcial</td>
+                    <td class="error">❌ Limitado</td>
+                    <td class="error">❌ Estático</td>
+                    <td class="warning">🟡 Média</td>
+                </tr>
+                <tr>
+                    <td><strong>Locks Explícitos</strong></td>
+                    <td class="success">✅ <strong>Máximo</strong></td>
+                    <td class="success">✅ <strong>Ilimitado</strong></td>
+                    <td class="success">✅ <strong>Dinâmico</strong></td>
+                    <td class="success">✅ <strong>Alta</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="highlight">
+            <h4>Cenário Prático</h4>
+            <p>Com <strong>4 threads</strong> e <strong>3 listas</strong>:</p>
+            <ul>
+                <li><strong>Região crítica global</strong>: Máximo 1 thread ativa (25% uso)</li>
+                <li><strong>Locks explícitos</strong>: Até 3 threads ativas simultaneamente (75% uso)</li>
+            </ul>
+        </div>
+
+        <h2>Características do Programa</h2>
+
+        <h3>1. Estrutura de Dados</h3>
+        <ul>
+            <li><strong>Lista Encadeada</strong>: Cada lista possui sua própria estrutura com:
+                <ul>
+                    <li>Ponteiro para o primeiro nó (<code>head</code>)</li>
+                    <li>Lock exclusivo (<code>omp_lock_t</code>)</li>
+                    <li>Contador de elementos (<code>count</code>)</li>
+                    <li>Identificador único (<code>id</code>)</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>2. Funcionalidades</h3>
+
+        <h4>Programa Interativo Principal</h4>
+        <ul>
+            <li>Aceita número de listas definido pelo usuário</li>
+            <li>Distribui inserções aleatoriamente entre todas as listas</li>
+            <li>Escalável para qualquer número de listas</li>
+            <li>Interface interativa para configuração personalizada</li>
+            <li>Execução direta sem demonstrações preliminares</li>
+        </ul>
+
+        <h2>Exemplo de Saída</h2>
+        <pre><code>TAREFA 9: Regiões críticas nomeadas e Locks explícitos
+======================================================
+
+=== TESTE INTERATIVO ===
+Digite o número de listas: 2
+Digite o número de inserções: 20
+Digite o número de threads: 3
+
+=== PROGRAMA COM 2 LISTAS ===
+Número de inserções: 20
+Número de threads: 3
+
+Thread 0 inserindo 968 na Lista 2
+Thread 1 inserindo 421 na Lista 2    ← Simultâneo!
+Thread 0 inserindo 727 na Lista 2
+Thread 2 inserindo 649 na Lista 2
+Thread 0 inserindo 717 na Lista 1    ← Mudança de lista!
+...
+
+Resultados após 20 inserções em 2 listas:
+Lista 1 (11 elementos): 432 471 349 384 ...
+Lista 2 (9 elementos): 283 102 819 541 ...
+Tempo total: 0.0152 segundos
+Total de elementos: 20
+
+Programa concluído com sucesso!</code></pre>
+
+        <h2>Conceitos Demonstrados</h2>
+
+        <h3>1. Locks Explícitos vs Regiões Críticas</h3>
+        <ul>
+            <li><strong>Diferença fundamental</strong>: Locks permitem granularidade dinâmica</li>
+            <li><strong>Escalabilidade</strong>: Funciona com N listas determinado em runtime</li>
+            <li><strong>Performance</strong>: Paralelismo real entre recursos diferentes</li>
+        </ul>
+
+        <h3>2. Thread Safety Dinâmica</h3>
+        <ul>
+            <li><strong>Proteção específica</strong>: Cada lista protegida individualmente</li>
+            <li><strong>Contenção mínima</strong>: Threads só competem pela mesma lista</li>
+            <li><strong>Sincronização eficiente</strong>: Locks apenas quando necessário</li>
+        </ul>
+
+        <h3>3. Paralelismo de Granularidade Fina</h3>
+        <ul>
+            <li><strong>Múltiplos recursos</strong>: Várias listas acessadas simultaneamente</li>
+            <li><strong>Balanceamento</strong>: Distribuição aleatória equilibra carga</li>
+            <li><strong>Escalabilidade</strong>: Performance melhora com mais listas</li>
+        </ul>
+
+        <h2>Vantagens da Abordagem</h2>
+        <ol>
+            <li><strong>Granularidade Dinâmica</strong>: Locks específicos por lista, número variável</li>
+            <li><strong>Paralelismo Máximo</strong>: Inserções simultâneas em listas diferentes</li>
+            <li><strong>Flexibilidade Total</strong>: Funciona com qualquer configuração N listas</li>
+            <li><strong>Segurança Garantida</strong>: Integridade dos dados sem race conditions</li>
+            <li><strong>Performance Ótima</strong>: Throughput superior a alternativas estáticas</li>
+            <li><strong>Demonstração Clara</strong>: Visualização do comportamento paralelo</li>
+        </ol>
+
+        <h2>Código Fonte</h2>
+        <div class="image-container">
+            <img src="tarefa9.png" alt="Código fonte da Tarefa 9" />
+            <div class="image-caption">
+                <strong>Figura 1:</strong> Código fonte completo da Tarefa 9 - Demonstração de regiões críticas nomeadas e locks explícitos em OpenMP
+            </div>
+        </div>
+    </div>
+</body>
+</html>
