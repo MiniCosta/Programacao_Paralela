@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <omp.h>
+#include <pascalops.h>
 
 // Parâmetros da simulação
 #define N 512        // Grade 512x512 pontos
@@ -53,6 +54,7 @@ void simulate_static(int threads) {
     omp_set_num_threads(threads); // Definir número de threads
     double start = omp_get_wtime();
     
+    pascal_start(2); // Início da instrumentação da região 2
     for (int iter = 0; iter < ITER; iter++) {
         // Paralelizar loop externo com divisão estática
         #pragma omp parallel for schedule(static)
@@ -72,6 +74,7 @@ void simulate_static(int threads) {
             }
         }
     }
+    pascal_stop(2); // Fim da instrumentação da região 2
     
     double end = omp_get_wtime();
     printf("Tempo VERSÃO 2 (static): %.4f segundos\n", end - start);
@@ -83,6 +86,7 @@ void simulate_collapse(int threads) {
     omp_set_num_threads(threads);
     double start = omp_get_wtime();
     
+    pascal_start(3); // Início da instrumentação da região 3
     for (int iter = 0; iter < ITER; iter++) {
         // Collapse(2) trata os dois loops como um espaço de iteração único
         #pragma omp parallel for schedule(static) collapse(2)
@@ -102,28 +106,15 @@ void simulate_collapse(int threads) {
             }
         }
     }
+    pascal_stop(3); // Fim da instrumentação da região 3
     
     double end = omp_get_wtime();
     printf("Tempo VERSÃO 3 (collapse): %.4f segundos\n", end - start);
 }
 
-int main(int argc, char *argv[]) {
-    // Verificar argumentos da linha de comando
-    int num_threads = 4; // Valor padrão
-    
-    if (argc > 1) {
-        num_threads = atoi(argv[1]); // Converter argumento para inteiro
-        if (num_threads <= 0 || num_threads > 8) {
-            printf("Erro: Número de threads deve estar entre 1 e 8\n");
-            printf("Uso: %s [num_threads]\n", argv[0]);
-            printf("Exemplo: %s 4\n", argv[0]);
-            return 1;
-        }
-    }
-    
+int main() {
     printf("=== SIMULAÇÃO DE VISCOSIDADE - NAVIER-STOKES ===\n");
     printf("Grade: %dx%d, Iterações: %d, Viscosidade: %.3f\n", N, N, ITER, NU);
-    printf("Número de threads: %d\n\n", num_threads);
     
     // Inicializar todos os pontos com velocidade zero
     for (int i = 0; i < N; i++) {
@@ -165,7 +156,7 @@ int main(int argc, char *argv[]) {
     }
     
     // Teste 2: Versão paralela static
-    simulate_static(num_threads);
+    simulate_static(4);
     
     // Reinicializar estado para teste collapse
     for (int i = 0; i < N; i++) {
@@ -184,7 +175,7 @@ int main(int argc, char *argv[]) {
     }
     
     // Teste 3: Versão com collapse
-    simulate_collapse(num_threads);
+    simulate_collapse(4);
     
     printf("\n=== VERSÕES 4-6: COMPARAÇÃO DE SCHEDULES ===\n");
     
@@ -210,11 +201,12 @@ int main(int argc, char *argv[]) {
         }
         
         printf("=== VERSÃO %d: Testando schedule %s ===\n", schedule_versions[s], schedules[s]);
-        omp_set_num_threads(num_threads); // Usar número de threads especificado
+        omp_set_num_threads(4); // Usar 4 threads fixo
         double start = omp_get_wtime();
         
+        pascal_start(schedule_versions[s]); // Início da instrumentação (regiões 4, 5, 6)
         for (int iter = 0; iter < ITER; iter++) {
-            if (s == 0) { // VERSÃO 4: static
+            if (s == 0) { // VERSÃO 4: staargvtic
                 #pragma omp parallel for schedule(static)
                 for (int i = 1; i < N-1; i++) {
                     for (int j = 1; j < N-1; j++) {
@@ -249,6 +241,7 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
+        pascal_stop(schedule_versions[s]); // Fim da instrumentação (regiões 4, 5, 6)
         
         double end = omp_get_wtime();
         printf("Tempo VERSÃO %d (%s): %.4f segundos\n", schedule_versions[s], schedules[s], end - start);
