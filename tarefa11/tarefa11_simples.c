@@ -21,10 +21,10 @@
  * 
  * 1. Execução básica:
  *    ./tarefa11_simples [grid_size] [iterations]
- *    Exemplo: ./tarefa11_simples 256 500
+ *    Exemplo: ./tarefa11_simples 1024 3000
  * 
  * 2. Análise com PaScal Analyzer:
- *    pascalanalyzer ./tarefa11_simples --inst man --cors 2,4,8 --ipts "256 500","512 1000" --verb INFO
+ *    pascalanalyzer ./tarefa11_simples --inst man --cors 2,4,8 --ipts "1024 3000","2048 6000" --verb INFO
  * 
  * REGIÕES DE INSTRUMENTAÇÃO PASCAL:
  * ---------------------------------
@@ -80,8 +80,8 @@
 #endif
 
 // Parâmetros da simulação (variáveis via linha de comando)
-int N = 256;         // Grade NxN pontos (padrão pequeno para testes)
-int ITER = 500;      // Número de iterações (padrão pequeno para testes)
+int N = 1024;        // Grade NxN pontos (padrão robusto para análise significativa)
+int ITER = 3000;     // Número de iterações (padrão robusto para análise significativa)
 double DT = 0.00001; // Passo temporal (pequeno para estabilidade numérica)
 double NU = 0.1;     // Viscosidade cinemática (constante do fluido)
 
@@ -406,5 +406,5 @@ int main(int argc, char *argv[]) {
     
     return 0;
 }
-//export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/pascal-releases-master/lib && ./pascal-releases-master/bin/pascalanalyzer ./tarefa11_simples_pascal --inst man --cors 2,4,6,8 --ipts "128 100","1024 400" --outp pascalanalysis.json --verb INFO
-//export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/pascal-releases-master/lib && ./pascal-releases-master/bin/pascalanalyzer ./tarefa11_simples_pascal --inst man --cors 2,4,8 --ipts "128 100","256 200","512 300" --rpts 2 --outp pascal_analysis.json --verb INFO
+//export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/pascal-releases-master/lib && ./pascal-releases-master/bin/pascalanalyzer ./tarefa11_simples_pascal --inst man --cors 2,4,6,8 --ipts "512 1500","1024 3000","2048 6000" --outp pascalanalysis.json --verb INFO
+//export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/pascal-releases-master/lib && ./pascal-releases-master/bin/pascalanalyzer ./tarefa11_simples_pascal --inst man --cors 2,4,8 --ipts "1024 3000","2048 6000","4096 12000" --rpts 2 --outp pascal_analysis.json --verb INFO
