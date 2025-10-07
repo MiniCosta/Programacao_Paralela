@@ -5,11 +5,11 @@
 #include <mpi.h>
 #include <sys/time.h>
 
-#define N_GLOBAL 1000      // Tamanho total da barra
-#define N_TIMESTEPS 1000   // Número de iterações temporais
-#define ALPHA 0.1          // Coeficiente de difusão térmica
+#define N_GLOBAL 4800      // Tamanho total da barra (divisivel por 2,3,4,5,6,8,10,12,15,16,20,24)
+#define N_TIMESTEPS 2000   // Numero de iteracoes temporais
+#define ALPHA 0.1          // Coeficiente de difusao termica
 #define DT 0.001           // Passo temporal
-#define DX 0.1             // Espaçamento espacial
+#define DX 0.1             // Espacamento espacial
 
 // Função para obter tempo atual
 double get_time() {
@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
     
     if (N_GLOBAL % size != 0) {
         if (rank == 0) {
-            printf("Erro: N_GLOBAL (%d) deve ser divisível pelo número de processos (%d)\n", 
+            printf("Erro: N_GLOBAL (%d) deve ser divisivel pelo numero de processos (%d)\n", 
                    N_GLOBAL, size);
         }
         MPI_Finalize();
@@ -212,11 +212,18 @@ int main(int argc, char *argv[]) {
     }
     
     if (rank == 0) {
-        printf("=== SIMULAÇÃO DE DIFUSÃO DE CALOR 1D ===\n");
-        printf("Tamanho da barra: %d pontos\n", N_GLOBAL);
-        printf("Número de processos: %d\n", size);
-        printf("Pontos por processo: %d\n", N_GLOBAL/size);
-        printf("Número de iterações: %d\n\n", N_TIMESTEPS);
+        printf("\n");
+        printf("====================================================\n");
+        printf("     SIMULACAO DE DIFUSAO DE CALOR 1D - MPI\n");
+        printf("====================================================\n");
+        printf("Tamanho da barra:      %d pontos\n", N_GLOBAL);
+        printf("Numero de processos:   %d\n", size);
+        printf("Pontos por processo:   %d\n", N_GLOBAL/size);
+        printf("Numero de iteracoes:   %d\n", N_TIMESTEPS);
+        printf("Coef. difusao termica: %.3f\n", ALPHA);
+        printf("Passo temporal (dt):   %.6f\n", DT);
+        printf("Espacamento (dx):      %.3f\n", DX);
+        printf("====================================================\n\n");
     }
     
     // Executar as três versões
@@ -239,23 +246,64 @@ int main(int argc, char *argv[]) {
     MPI_Reduce(&tempo3, &tempo3_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     
     if (rank == 0) {
-        printf("RESULTADOS:\n");
-        printf("%-40s %.6f s\n", "1. MPI_Send/MPI_Recv (bloqueante):", tempo1_max);
-        printf("%-40s %.6f s\n", "2. MPI_Isend/MPI_Irecv + MPI_Wait:", tempo2_max);
-        printf("%-40s %.6f s\n", "3. MPI_Isend/MPI_Irecv + MPI_Test:", tempo3_max);
-        printf("\nSPEEDUP:\n");
-        printf("Versão 2 vs 1: %.2fx\n", tempo1_max / tempo2_max);
-        printf("Versão 3 vs 1: %.2fx\n", tempo1_max / tempo3_max);
-        printf("Versão 3 vs 2: %.2fx\n", tempo2_max / tempo3_max);
+        printf("RESULTADOS DE PERFORMANCE:\n");
+        printf("--------------------------------------------------\n");
+        printf("%-45s %10.6f s\n", "1. MPI_Send/MPI_Recv (bloqueante):", tempo1_max);
+        printf("%-45s %10.6f s\n", "2. MPI_Isend/MPI_Irecv + MPI_Wait:", tempo2_max);
+        printf("%-45s %10.6f s\n", "3. MPI_Isend/MPI_Irecv + MPI_Test:", tempo3_max);
+        printf("--------------------------------------------------\n");
         
-        printf("\nEFICIÊNCIA:\n");
-        if (tempo1_max < tempo2_max) {
-            printf("Comunicação bloqueante foi mais eficiente\n");
-        } else if (tempo2_max < tempo3_max) {
-            printf("Comunicação não-bloqueante com Wait foi mais eficiente\n");
+        // Calcular GFLOPS (operacoes de ponto flutuante por segundo)
+        double ops_per_timestep = (double)N_GLOBAL * 5.0; // 5 operacoes por ponto por iteracao
+        double total_ops = ops_per_timestep * N_TIMESTEPS;
+        double gflops1 = (total_ops / tempo1_max) / 1e9;
+        double gflops2 = (total_ops / tempo2_max) / 1e9;
+        double gflops3 = (total_ops / tempo3_max) / 1e9;
+        
+        printf("\nPERFORMANCE (GFLOPS):\n");
+        printf("--------------------------------------------------\n");
+        printf("%-45s %10.2f GFLOPS\n", "1. Comunicacao bloqueante:", gflops1);
+        printf("%-45s %10.2f GFLOPS\n", "2. Nao-bloqueante + Wait:", gflops2);
+        printf("%-45s %10.2f GFLOPS\n", "3. Nao-bloqueante + Test:", gflops3);
+        printf("--------------------------------------------------\n");
+        
+        printf("\nSPEEDUP RELATIVO:\n");
+        printf("--------------------------------------------------\n");
+        printf("%-30s %15.2fx\n", "Metodo 2 vs 1:", tempo1_max / tempo2_max);
+        printf("%-30s %15.2fx\n", "Metodo 3 vs 1:", tempo1_max / tempo3_max);
+        printf("%-30s %15.2fx\n", "Metodo 3 vs 2:", tempo2_max / tempo3_max);
+        printf("--------------------------------------------------\n");
+        
+        printf("\nANALISE DE EFICIENCIA:\n");
+        printf("--------------------------------------------------\n");
+        double min_tempo = (tempo1_max < tempo2_max) ? tempo1_max : tempo2_max;
+        min_tempo = (min_tempo < tempo3_max) ? min_tempo : tempo3_max;
+        
+        if (min_tempo == tempo1_max) {
+            printf("* MELHOR: Comunicacao bloqueante (%.6f s)\n", tempo1_max);
+            printf("  - Menor overhead de sincronizacao\n");
+            printf("  - Ideal para poucos processos\n");
+        } else if (min_tempo == tempo2_max) {
+            printf("* MELHOR: Comunicacao nao-bloqueante + Wait (%.6f s)\n", tempo2_max);
+            printf("  - Boa sobreposicao computacao/comunicacao\n");
+            printf("  - Ideal para muitos processos\n");
         } else {
-            printf("Comunicação não-bloqueante com Test foi mais eficiente\n");
+            printf("* MELHOR: Comunicacao nao-bloqueante + Test (%.6f s)\n", tempo3_max);
+            printf("  - Maxima flexibilidade de escalonamento\n");
+            printf("  - Ideal para sistemas heterogeneos\n");
         }
+        printf("--------------------------------------------------\n");
+        
+        // Estatisticas adicionais
+        double efficiency = (double)size / (tempo1_max * size / tempo1_max); // Aproximacao
+        printf("\nESTATISTICAS ADICIONAIS:\n");
+        printf("--------------------------------------------------\n");
+        printf("Total de operacoes:           %.2e\n", total_ops);
+        printf("Operacoes por processo:       %.2e\n", total_ops / size);
+        printf("Dados por processo:           %.1f KB\n", ((double)(N_GLOBAL/size + 2) * sizeof(double)) / 1024.0);
+        printf("Comunicacoes por timestep:    %d\n", (size > 1) ? 2*(size-1) : 0);
+        printf("Total de comunicacoes:        %d\n", ((size > 1) ? 2*(size-1) : 0) * N_TIMESTEPS);
+        printf("====================================================\n");
     }
     
     MPI_Finalize();
