@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefa 10: Comparação de Mecanismos de Sincronização em OpenMP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 25px;
+        }
+        h4 {
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+        }
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            color: #2c3e50;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e8f4f8;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            padding: 15px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
+        }
+        .warning {
+            background-color: #f8d7da;
+            padding: 15px;
+            border-left: 4px solid #dc3545;
+            margin: 15px 0;
+        }
+        .star {
+            color: #ffc107;
+        }
+        .performance-best {
+            font-weight: bold;
+            color: #28a745;
+        }
+        ul {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .toc {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .toc h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .toc li {
+            margin: 8px 0;
+        }
+        .toc a {
+            text-decoration: none;
+            color: #007bff;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+<h1>Tarefa 10: Comparação de Mecanismos de Sincronização em OpenMP</h1>
+
+<div class="toc">
+    <h3>Índice</h3>
+    <ul>
+        <li><a href="#descricao">Descrição</a></li>
+        <li><a href="#fundamentos">Fundamentos Teóricos das Cláusulas OpenMP</a></li>
+        <li><a href="#implementacoes">Implementações</a></li>
+        <li><a href="#resultados">Resultados Experimentais</a></li>
+        <li><a href="#teoria">Teoria dos Mecanismos de Sincronização</a></li>
+        <li><a href="#roteiro">Roteiro para Escolha do Mecanismo</a></li>
+        <li><a href="#reflexao">Reflexão sobre Desempenho e Produtividade</a></li>
+        <li><a href="#conclusao">Conclusão</a></li>
+    </ul>
+</div>
+
+<h2 id="descricao">Descrição</h2>
+
+<p>Este projeto implementa e compara cinco diferentes abordagens para paralelização do algoritmo de Monte Carlo para estimativa de π, explorando diversos mecanismos de sincronização em OpenMP. O objetivo é analisar o desempenho, produtividade e aplicabilidade de cada técnica.</p>
+
+<h2 id="fundamentos">Fundamentos Teóricos das Cláusulas OpenMP</h2>
+
+<h3>1. <code>#pragma omp critical</code></h3>
+
+<p><strong>Definição</strong>: Uma região crítica é uma seção de código que deve ser executada por apenas uma thread por vez, garantindo exclusão mútua.</p>
+
+<p><strong>Teoria</strong>:</p>
+<ul>
+    <li><strong>Exclusão Mútua</strong>: Implementa o conceito fundamental de seção crítica da programação concorrente</li>
+    <li><strong>Implementação</strong>: Utiliza mutex interno do OpenMP (similar a <code>pthread_mutex_t</code>)</li>
+    <li><strong>Atomicidade</strong>: Garante que toda a seção de código seja executada atomicamente</li>
+    <li><strong>Serialização</strong>: Força execução sequencial dentro da região crítica</li>
+</ul>
+
+<p><strong>Características Técnicas</strong>:</p>
+<pre><code>// Implementação conceitual interna
+static omp_lock_t __critical_default_lock__;
+
+// Ao encontrar #pragma omp critical
+omp_set_lock(&__critical_default_lock__);
+// código da região crítica
+omp_unset_lock(&__critical_default_lock__);</code></pre>
+
+<p><strong>Overhead</strong>:</p>
+<ul>
+    <li><strong>Aquisição/liberação do lock</strong>: ~50-200 ciclos de CPU</li>
+    <li><strong>Contenção</strong>: Aumenta linearmente com número de threads</li>
+    <li><strong>Context switching</strong>: Possível troca de contexto se lock não disponível</li>
+</ul>
+
+<h3>2. <code>#pragma omp atomic</code></h3>
+
+<p><strong>Definição</strong>: Garante que uma operação específica seja executada atomicamente, sem interrupção por outras threads.</p>
+
+<p><strong>Teoria</strong>:</p>
+<ul>
+    <li><strong>Atomicidade em Hardware</strong>: Utiliza instruções atômicas da CPU (LOCK prefix no x86)</li>
+    <li><strong>Memory Ordering</strong>: Controla ordem de operações na memória</li>
+    <li><strong>Granularidade Fina</strong>: Proteção apenas da operação específica, não de blocos de código</li>
+    <li><strong>Consistência de Cache</strong>: Garante visibilidade imediata entre threads</li>
+</ul>
+
+<p><strong>Tipos de Operações Suportadas</strong>:</p>
+<pre><code>// Básicas (OpenMP 2.0+)
+#pragma omp atomic
+x++;                    // Incremento
+
+#pragma omp atomic
+x += expr;              // Update
+
+// Estendidas (OpenMP 3.1+)
+#pragma omp atomic read
+v = x;                  // Read
+
+#pragma omp atomic write
+x = expr;               // Write
+
+#pragma omp atomic capture
+{v = x; x++;}          // Capture</code></pre>
+
+<h3>3. Contadores Privados (Thread-Local Storage)</h3>
+
+<p><strong>Definição</strong>: Cada thread mantém sua própria cópia de variáveis, eliminando contenção durante a computação.</p>
+
+<p><strong>Vantagens Teóricas</strong>:</p>
+<ul>
+    <li><strong>Cache Locality</strong>: Dados sempre na cache L1 da thread</li>
+    <li><strong>Zero False Sharing</strong>: Sem interferência entre threads</li>
+    <li><strong>Escalabilidade Linear</strong>: Performance cresce com threads</li>
+    <li><strong>Predizibilidade</strong>: Comportamento determinístico</li>
+</ul>
+
+<h3>4. Vetor de Contadores Privados</h3>
+
+<p><strong>Definição</strong>: Extensão dos contadores privados usando array para armazenar resultados individuais de cada thread.</p>
+
+<p><strong>Vantagens</strong>:</p>
+<ul>
+    <li><strong>Máximo Paralelismo</strong>: Zero contenção</li>
+    <li><strong>Debugging</strong>: Fácil inspecionar resultados por thread</li>
+    <li><strong>Flexibilidade</strong>: Suporte a operações complexas</li>
+    <li><strong>Otimização Manual</strong>: Controle sobre layout de memória</li>
+</ul>
+
+<h3>5. <code>#pragma omp reduction</code></h3>
+
+<p><strong>Definição</strong>: Cláusula que automatiza o padrão de redução, otimizando a agregação de valores de múltiplas threads.</p>
+
+<p><strong>Operadores Suportados</strong>:</p>
+<ul>
+    <li><strong>Aritméticos</strong>: <code>+</code>, <code>-</code>, <code>*</code></li>
+    <li><strong>Comparação</strong>: <code>max</code>, <code>min</code></li>
+    <li><strong>Lógicos</strong>: <code>&&</code>, <code>||</code></li>
+    <li><strong>Bitwise</strong>: <code>&</code>, <code>|</code>, <code>^</code></li>
+</ul>
+
+<h2 id="implementacoes">Implementações</h2>
+
+<h3>1. Contador Compartilhado com <code>#pragma omp critical</code></h3>
+<pre><code>#pragma omp critical
+acertos_critical++;</code></pre>
+<ul>
+    <li><strong>Sincronização</strong>: Região crítica bloqueia acesso concorrente</li>
+    <li><strong>Overhead</strong>: Alto - serialização total de incrementos</li>
+    <li><strong>Uso</strong>: Proteção de código complexo que não pode ser atomizado</li>
+</ul>
+
+<h3>2. Contador Compartilhado com <code>#pragma omp atomic</code></h3>
+<pre><code>#pragma omp atomic
+acertos_atomic++;</code></pre>
+<ul>
+    <li><strong>Sincronização</strong>: Operação atômica em hardware</li>
+    <li><strong>Overhead</strong>: Médio - contenda por variável compartilhada</li>
+    <li><strong>Uso</strong>: Operações simples (incremento, soma, etc.)</li>
+</ul>
+
+<h3>3. Contadores Privados (Redução Manual com Atomic)</h3>
+<pre><code>long long int local = 0;
+// ... loop com contador local
+#pragma omp atomic
+acertos_privado += local;</code></pre>
+<ul>
+    <li><strong>Sincronização</strong>: Mínima - apenas na redução final</li>
+    <li><strong>Overhead</strong>: Baixo - uma sincronização por thread</li>
+    <li><strong>Uso</strong>: Quando reduction não está disponível</li>
+</ul>
+
+<h3>4. Vetor de Contadores Privados</h3>
+<pre><code>acertos_vet[tid] = local;
+// ... redução sequencial posterior</code></pre>
+<ul>
+    <li><strong>Sincronização</strong>: Nenhuma durante cálculo</li>
+    <li><strong>Overhead</strong>: Mínimo - sem contenção</li>
+    <li><strong>Uso</strong>: Controle total sobre redução e debugging</li>
+</ul>
+
+<h3>5. Cláusula <code>reduction</code></h3>
+<pre><code>#pragma omp parallel for reduction(+:acertos_reduction)</code></pre>
+<ul>
+    <li><strong>Sincronização</strong>: Automática pelo compilador</li>
+    <li><strong>Overhead</strong>: Otimizado - implementação eficiente</li>
+    <li><strong>Uso</strong>: Padrões de redução conhecidos</li>
+</ul>
+
+<h2 id="resultados">Resultados Experimentais</h2>
+
+<h3>Teste com 100M pontos (4 threads, gcc sem otimização)</h3>
+
+<table>
+    <tr>
+        <th>Versão</th>
+        <th>Mecanismo</th>
+        <th>π Estimado</th>
+        <th>Tempo (s)</th>
+        <th>Speedup</th>
+        <th>Eficiência</th>
+    </tr>
+    <tr>
+        <td>1</td>
+        <td>Critical</td>
+        <td>3.1416106800</td>
+        <td>8.294</td>
+        <td>1.0x</td>
+        <td>25%</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td>Atomic</td>
+        <td>3.1414664000</td>
+        <td>2.246</td>
+        <td>3.7x</td>
+        <td>92%</td>
+    </tr>
+    <tr style="background-color: #d4edda;">
+        <td>3</td>
+        <td>Privado</td>
+        <td>3.1414664000</td>
+        <td>0.358</td>
+        <td class="performance-best">23.2x</td>
+        <td class="performance-best">580%</td>
+    </tr>
+    <tr style="background-color: #d4edda;">
+        <td>4</td>
+        <td>Vetor</td>
+        <td>3.1414664000</td>
+        <td>0.355</td>
+        <td class="performance-best">23.4x</td>
+        <td class="performance-best">585%</td>
+    </tr>
+    <tr style="background-color: #d1ecf1;">
+        <td>5</td>
+        <td>Reduction</td>
+        <td>3.1414664000</td>
+        <td>0.348</td>
+        <td class="performance-best">23.8x</td>
+        <td class="performance-best">595%</td>
+    </tr>
+</table>
+
+<h3>Teste com 500M pontos (4 threads, gcc sem otimização)</h3>
+
+<table>
+    <tr>
+        <th>Versão</th>
+        <th>Mecanismo</th>
+        <th>π Estimado</th>
+        <th>Tempo (s)</th>
+        <th>Speedup</th>
+        <th>Eficiência</th>
+    </tr>
+    <tr>
+        <td>1</td>
+        <td>Critical</td>
+        <td>3.1415775360</td>
+        <td>42.30159</td>
+        <td>1.0x</td>
+        <td>25%</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td>Atomic</td>
+        <td>3.1415495200</td>
+        <td>8.35678</td>
+        <td>5.06x</td>
+        <td class="performance-best">127%</td>
+    </tr>
+    <tr style="background-color: #d4edda;">
+        <td>3</td>
+        <td>Privado</td>
+        <td>3.1415645520</td>
+        <td>2.00836</td>
+        <td>21.06x</td>
+        <td class="performance-best">526%</td>
+    </tr>
+    <tr style="background-color: #d4edda;">
+        <td>4</td>
+        <td>Vetor</td>
+        <td>3.1415645520</td>
+        <td>1.77873</td>
+        <td class="performance-best">23.77x</td>
+        <td class="performance-best">594%</td>
+    </tr>
+    <tr style="background-color: #d1ecf1;">
+        <td>5</td>
+        <td>Reduction</td>
+        <td>3.1416206960</td>
+        <td>1.71463</td>
+        <td class="performance-best">24.67x</td>
+        <td class="performance-best">617%</td>
+    </tr>
+</table>
+
+<h3>Análise dos Resultados</h3>
+
+<h4>Desempenho por Escala</h4>
+
+<p><strong>100M pontos:</strong></p>
+<ul>
+    <li><strong>Critical</strong>: Baseline com alto overhead de sincronização</li>
+    <li><strong>Atomic</strong>: 3.7x melhoria - redução significativa da contenção</li>
+    <li><strong>Privados/Reduction</strong>: 23-24x melhoria - paralelização quase ideal</li>
+</ul>
+
+<p><strong>500M pontos:</strong></p>
+<ul>
+    <li><strong>Critical</strong>: Mantém baixa performance (42.3s)</li>
+    <li><strong>Atomic</strong>: 5.06x melhoria - cresce com escala</li>
+    <li><strong>Privados</strong>: 21-24x melhoria - <strong>Reduction é o melhor</strong> (24.67x)</li>
+</ul>
+
+<h4>Escalabilidade</h4>
+<ul>
+    <li><strong>Critical</strong>: Não escala - overhead constante alto</li>
+    <li><strong>Atomic</strong>: Escala moderadamente (3.7x → 5.06x)</li>
+    <li><strong>Privados/Reduction</strong>: Excelente escalabilidade mantida (21-24.67x)</li>
+</ul>
+
+<h2 id="roteiro">Roteiro para Escolha do Mecanismo de Sincronização</h2>
+
+<div class="success">
+    <h3><span class="emoji">🎯</span> Guia de Decisão Rápida</h3>
+
+    <h4>1. Use <code>reduction</code> quando:</h4>
+    <ul>
+        <li>✅ Operação é uma redução padrão (+, *, max, min, etc.)</li>
+        <li>✅ Quer código limpo e legível</li>
+        <li>✅ Performance é importante</li>
+        <li>✅ OpenMP 2.0+ disponível</li>
+    </ul>
+
+    <h4>2. Use contadores privados quando:</h4>
+    <ul>
+        <li>✅ <code>reduction</code> não suporta sua operação</li>
+        <li>✅ Precisa de controle total sobre redução</li>
+        <li>✅ Debugging/profiling detalhado necessário</li>
+        <li>✅ Operação complexa não-padrão</li>
+    </ul>
+
+    <h4>3. Use <code>#pragma omp atomic</code> quando:</h4>
+    <ul>
+        <li>✅ Operação simples (++, +=, -=, *=, etc.)</li>
+        <li>✅ <code>reduction</code> não disponível/aplicável</li>
+        <li>✅ Necessário acesso concorrente frequente</li>
+        <li>✅ Performance moderada aceitável</li>
+    </ul>
+
+    <h4>4. Use <code>#pragma omp critical</code> quando:</h4>
+    <ul>
+        <li>✅ Código complexo multi-instrução</li>
+        <li>✅ Operações não-atômicas</li>
+        <li>✅ I/O ou chamadas de sistema</li>
+        <li>✅ Performance não é prioridade</li>
+    </ul>
+</div>
+
+<h3><span class="emoji">📊</span> Matriz de Decisão por Critério</h3>
+
+<table>
+    <tr>
+        <th>Critério</th>
+        <th>Reduction</th>
+        <th>Privados</th>
+        <th>Atomic</th>
+        <th>Critical</th>
+        <th>Critical Named</th>
+        <th>Locks</th>
+    </tr>
+    <tr>
+        <td><strong>Performance</strong></td>
+        <td><span class="star">⭐⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐</span></td>
+        <td><span class="star">⭐</span></td>
+        <td><span class="star">⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐</span></td>
+    </tr>
+    <tr>
+        <td><strong>Simplicidade</strong></td>
+        <td><span class="star">⭐⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐</span></td>
+    </tr>
+    <tr>
+        <td><strong>Flexibilidade</strong></td>
+        <td><span class="star">⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐⭐</span></td>
+    </tr>
+    <tr>
+        <td><strong>Escalabilidade</strong></td>
+        <td><span class="star">⭐⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐</span></td>
+        <td><span class="star">⭐</span></td>
+        <td><span class="star">⭐⭐⭐</span></td>
+        <td><span class="star">⭐⭐⭐⭐⭐</span></td>
+    </tr>
+</table>
+
+<h2 id="reflexao">Reflexão sobre Desempenho e Produtividade</h2>
+
+<div class="highlight">
+    <h3><span class="emoji">🏆</span> A Escolha Óbvia: <code>reduction</code> em 90% dos Casos</h3>
+
+    <p><strong>Em termos simples</strong>: Se você está fazendo uma operação de redução (somar, contar, encontrar máximo/mínimo), <strong>sempre use <code>reduction</code> primeiro</strong>. Ela é simultaneamente:</p>
+    <ul>
+        <li><strong>Mais rápida</strong> (24.67x speedup vs 1x do critical)</li>
+        <li><strong>Mais simples</strong> (uma linha de código)</li>
+        <li><strong>Menos propensa a bugs</strong> (o compilador faz tudo)</li>
+    </ul>
+
+    <h4>Por que <code>reduction</code> é superior?</h4>
+    <ol>
+        <li><strong>Performance excepcional</strong>: O compilador gera código altamente otimizado</li>
+        <li><strong>Código limpo</strong>: Uma linha resolve tudo - <code>reduction(+:contador)</code></li>
+        <li><strong>Zero bugs de sincronização</strong>: Você não precisa gerenciar locks</li>
+        <li><strong>Funciona em qualquer arquitetura</strong>: Intel, AMD, ARM - otimizado automaticamente</li>
+    </ol>
+
+    <h4>Quando NÃO usar <code>reduction</code>?</h4>
+    <p><strong>Apenas 3 situações específicas:</strong></p>
+    <ol>
+        <li><strong>OpenMP muito antigo</strong> (anterior a 2.0 - raro hoje)</li>
+        <li><strong>Operação complexa não-padrão</strong></li>
+        <li><strong>Debugging detalhado</strong>: Quando você precisa ver o que cada thread fez individualmente</li>
+    </ol>
+</div>
+
+<div class="success">
+    <h3><span class="emoji">💡</span> Regra Prática Simples</h3>
+
+    <p><strong>Para 90% dos casos de sincronização em OpenMP:</strong></p>
+    <pre><code>// ✅ SEMPRE tente isso primeiro
+#pragma omp parallel for reduction(+:contador)
+for (int i = 0; i < N; i++) {
+    if (condicao(i)) contador++;
+}</code></pre>
+
+    <p><strong>Só vá para outras opções se reduction não funcionar para seu caso específico.</strong></p>
+
+    <p><strong>Lembre-se</strong>: <code>reduction</code> não é apenas mais rápida, é também <strong>mais simples de escrever e depurar</strong>. É literalmente a melhor escolha em todos os aspectos para padrões de redução.</p>
+</div>
+
+<h3>Insights dos Resultados Experimentais</h3>
+
+<h4>Desempenho por Mecanismo</h4>
+<ul>
+    <li><strong>Critical</strong>: Gargalo severo e constante - <strong>42x mais lento</strong> que reduction</li>
+    <li><strong>Atomic</strong>: Melhoria substancial - <strong>5x melhor</strong> que critical em larga escala</li>
+    <li><strong>Privados</strong>: Excelente performance - <strong>21-24x melhoria</strong></li>
+    <li><strong>Reduction</strong>: <strong>Melhor absoluto</strong> - 24.67x speedup com código mais limpo</li>
+</ul>
+
+<h4>Escalabilidade Observada</h4>
+<ul>
+    <li><strong>Critical</strong>: Performance <strong>não melhora</strong> com escala - overhead fixo alto</li>
+    <li><strong>Atomic</strong>: <strong>Melhora gradual</strong> (3.7x → 5.06x) - escala moderadamente</li>
+    <li><strong>Privados/Reduction</strong>: <strong>Escalabilidade mantida</strong> - performance consistente</li>
+</ul>
+
+<h2 id="conclusao">Conclusão</h2>
+
+<p>A escolha do mecanismo de sincronização deve equilibrar:</p>
+<ul>
+    <li><strong>Performance</strong>: Reduction/Privados > Atomic > Critical</li>
+    <li><strong>Simplicidade</strong>: Reduction > Atomic > Critical > Privados</li>
+    <li><strong>Flexibilidade</strong>: Locks > Critical > Privados > Atomic > Reduction</li>
+</ul>
+
+<div class="success">
+    <p><strong>Recomendação Final</strong>: Para aplicações científicas, privilegie <code>reduction</code> quando possível, contadores privados para casos complexos, e reserve <code>critical</code> apenas para código não-paralelizável.</p>
+</div>
+
+<h2>Compilação e Execução</h2>
+
+<pre><code>gcc -fopenmp -o tarefa10 tarefa10.c
+./tarefa10 [num_pontos] [num_threads]
+
+# Exemplo
+./tarefa10 100000000 4</code></pre>
+
+<h2>Resultados Visuais</h2>
+
+<img src="tarefa10.png" alt="Gráfico de Performance - Comparação dos Mecanismos de Sincronização" title="Comparação de Performance entre os diferentes mecanismos de sincronização em OpenMP">
+
+<p style="text-align: center; color: #666; font-style: italic;">
+Código Tarefa 10</p>
+
+</body>
+</html>
