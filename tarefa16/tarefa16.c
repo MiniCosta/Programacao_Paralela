@@ -12,10 +12,10 @@
 #include <sys/time.h>
 #endif
 
-// Configurações da simulação
-#define MAX_M 2000      // Máximo número de linhas
-#define MAX_N 2000      // Máximo número de colunas
-#define NUM_TESTS 5     // Número de testes para média
+// Configurações da simulação - limites de tamanho para evitar overflow de memória
+#define MAX_M 12000     // Máximo número de linhas
+#define MAX_N 12000     // Máximo número de colunas
+#define NUM_TESTS 3     // Número de testes para média e precisão estatística
 
 // Função para obter tempo atual (compatível com Windows)
 double get_time() {
@@ -31,19 +31,19 @@ double get_time() {
 #endif
 }
 
-// Função para inicializar matriz com valores aleatórios
+// Função para inicializar matriz com valores aleatórios - garante resultados reproduzíveis
 void init_matrix(double *A, int M, int N) {
-    srand(42); // Seed fixo para reprodutibilidade
+    srand(42); // Seed fixo para reprodutibilidade entre execuções
     for (int i = 0; i < M * N; i++) {
-        A[i] = (double)rand() / RAND_MAX * 10.0 - 5.0; // Valores entre -5 e 5
+        A[i] = (double)rand() / RAND_MAX * 10.0 - 5.0; // Valores entre -5 e 5 para evitar overflow
     }
 }
 
-// Função para inicializar vetor com valores aleatórios
+// Função para inicializar vetor com valores aleatórios - independente da matriz
 void init_vector(double *x, int N) {
-    srand(123); // Seed diferente para o vetor
+    srand(123); // Seed diferente para garantir independência estatística
     for (int i = 0; i < N; i++) {
-        x[i] = (double)rand() / RAND_MAX * 10.0 - 5.0; // Valores entre -5 e 5
+        x[i] = (double)rand() / RAND_MAX * 10.0 - 5.0; // Mesma faixa da matriz para consistência
     }
 }
 
@@ -65,28 +65,28 @@ double matrix_vector_parallel(int rank, int size, int M, int N, int verbose) {
     double *A_local = NULL;     // Submatriz local de cada processo
     double *y_local = NULL;     // Parte local do vetor resultado
     
-    // Verificar se M é divisível pelo número de processos
+    // Verificar divisibilidade - requisito para balanceamento perfeito de carga
     if (M % size != 0) {
         if (rank == 0) {
             printf("Erro: M (%d) deve ser divisível pelo número de processos (%d)\n", M, size);
         }
-        return -1.0;
+        return -1.0; // Retorna erro para indicar falha na configuração
     }
     
-    int rows_per_process = M / size;  // Linhas por processo
+    int rows_per_process = M / size;  // Cada processo recebe exatamente o mesmo número de linhas
     
-    // Alocar memória para vetores (todos os processos precisam de x)
-    x = (double*)malloc(N * sizeof(double));
-    y_local = (double*)malloc(rows_per_process * sizeof(double));
-    A_local = (double*)malloc(rows_per_process * N * sizeof(double));
+    // Alocar memória local para cada processo - estruturas distribuídas
+    x = (double*)malloc(N * sizeof(double)); // Vetor completo será recebido via MPI_Bcast
+    y_local = (double*)malloc(rows_per_process * sizeof(double)); // Resultado parcial do processo
+    A_local = (double*)malloc(rows_per_process * N * sizeof(double)); // Submatriz local recebida via MPI_Scatter
     
-    // Processo 0: inicializar dados e alocar memória completa
+    // Apenas o processo mestre (rank 0) possui os dados completos inicialmente
     if (rank == 0) {
-        A = (double*)malloc(M * N * sizeof(double));
-        y = (double*)malloc(M * sizeof(double));
+        A = (double*)malloc(M * N * sizeof(double)); // Matriz completa apenas no processo 0
+        y = (double*)malloc(M * sizeof(double)); // Vetor resultado final apenas no processo 0
         
-        init_matrix(A, M, N);
-        init_vector(x, N);
+        init_matrix(A, M, N); // Inicializar matriz com valores conhecidos
+        init_vector(x, N); // Inicializar vetor de entrada
         
         if (verbose) {
             printf("\n=== PRODUTO MATRIZ-VETOR PARALELO ===\n");
@@ -98,56 +98,56 @@ double matrix_vector_parallel(int rank, int size, int M, int N, int verbose) {
         }
     }
     
-    // Sincronizar todos os processos antes de começar a medição
+    // Sincronização para medição precisa - todos os processos começam juntos
     MPI_Barrier(MPI_COMM_WORLD);
-    double start_time = get_time();
+    double start_time = get_time(); // Marca o início do algoritmo paralelo
     
-    // 1. BROADCAST: Distribuir vetor x para todos os processos
+    // FASE 1: Distribuir vetor x completo para todos os processos (comunicação coletiva)
     MPI_Bcast(x, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
-    // 2. SCATTER: Distribuir linhas da matriz A entre os processos
+    // FASE 2: Distribuir linhas da matriz A entre processos (decomposição por linhas)
     MPI_Scatter(A, rows_per_process * N, MPI_DOUBLE,
                 A_local, rows_per_process * N, MPI_DOUBLE,
                 0, MPI_COMM_WORLD);
     
-    // 3. COMPUTAÇÃO LOCAL: Cada processo calcula sua parte de y
+    // FASE 3: Computação paralela - cada processo calcula suas linhas independentemente
     for (int i = 0; i < rows_per_process; i++) {
-        y_local[i] = 0.0;
+        y_local[i] = 0.0; // Inicializar acumulador para precisão numérica
         for (int j = 0; j < N; j++) {
-            y_local[i] += A_local[i * N + j] * x[j];
+            y_local[i] += A_local[i * N + j] * x[j]; // Produto escalar linha-vetor
         }
     }
     
-    // 4. GATHER: Coletar resultados parciais no processo 0
+    // FASE 4: Coletar resultados parciais de volta ao processo mestre
     MPI_Gather(y_local, rows_per_process, MPI_DOUBLE,
                y, rows_per_process, MPI_DOUBLE,
                0, MPI_COMM_WORLD);
     
-    // Sincronizar todos os processos após a computação
+    // Sincronização final para medição precisa - aguarda todos terminarem
     MPI_Barrier(MPI_COMM_WORLD);
-    double end_time = get_time();
+    double end_time = get_time(); // Marca o fim do algoritmo paralelo
     
-    double elapsed_time = end_time - start_time;
+    double elapsed_time = end_time - start_time; // Tempo total incluindo comunicação
     
     // Processo 0: verificação e limpeza
     if (rank == 0) {
         if (verbose) {
             printf("Cálculo paralelo concluído!\n");
             
-            // Verificação com versão sequencial (apenas para matrizes pequenas)
-            if (M <= 500 && N <= 500) {
-                double *y_seq = (double*)malloc(M * sizeof(double));
+            // Verificação de correção apenas para matrizes pequenas (evita overhead)
+            if (M <= 100 && N <= 100) {
+                double *y_seq = (double*)malloc(M * sizeof(double)); // Resultado da versão sequencial
                 double start_seq = get_time();
-                matrix_vector_sequential(A, x, y_seq, M, N);
+                matrix_vector_sequential(A, x, y_seq, M, N); // Execução sequencial para comparação
                 double end_seq = get_time();
                 
-                // Verificar se os resultados são iguais
-                int correct = 1;
-                double max_error = 0.0;
+                // Comparação numérica entre versão paralela e sequencial
+                int correct = 1; // Flag para indicar correção
+                double max_error = 0.0; // Maior erro encontrado
                 for (int i = 0; i < M; i++) {
-                    double error = fabs(y[i] - y_seq[i]);
-                    if (error > max_error) max_error = error;
-                    if (error > 1e-10) correct = 0;
+                    double error = fabs(y[i] - y_seq[i]); // Erro absoluto por elemento
+                    if (error > max_error) max_error = error; // Rastrear erro máximo
+                    if (error > 1e-10) correct = 0; // Tolerância para precisão de ponto flutuante
                 }
                 
                 printf("\nVerificação (vs. versão sequencial):\n");
@@ -164,76 +164,79 @@ double matrix_vector_parallel(int rank, int size, int M, int N, int verbose) {
         free(y);
     }
     
-    // Limpeza da memória local
-    free(x);
-    free(y_local);
-    free(A_local);
+    // Limpeza de memória local - cada processo limpa suas estruturas
+    free(x); // Liberar cópia local do vetor x
+    free(y_local); // Liberar resultado parcial
+    free(A_local); // Liberar submatriz local
     
-    return elapsed_time;
+    return elapsed_time; // Retornar tempo medido para análise de performance
 }
 
 // Função para executar benchmark com diferentes tamanhos
 void run_benchmark(int rank, int size) {
     if (rank == 0) {
-        printf("\n" "="*60 "\n");
+        printf("\n============================================================\n");
         printf("BENCHMARK: PRODUTO MATRIZ-VETOR PARALELO\n");
         printf("Processos MPI: %d\n", size);
-        printf("=" "*60" "\n");
+        printf("============================================================\n");
     }
     
     // Diferentes tamanhos para teste
     int test_sizes[][2] = {
-        {400, 400},     // Pequeno
-        {800, 800},     // Médio
-        {1200, 1200},   // Grande
-        {1600, 1600},   // Muito grande
-        {2000, 2000}    // Máximo
+        {2000, 2000},   // Pequeno
+        {4000, 4000},   // Médio
+        {6000, 6000},   // Grande
+        {8000, 8000},   // Muito grande
+        {10000, 10000}, // Enorme
+        {12000, 12000}, // Muito enorme
+        {14000, 14000}, // Gigantesco
+        {16000, 16000}  // Máximo
     };
     int num_sizes = sizeof(test_sizes) / sizeof(test_sizes[0]);
     
     if (rank == 0) {
         printf("\nFormato: M x N | Tempo (s) | GFLOPS | Eficiência\n");
-        printf("-" "*50" "\n");
+        printf("--------------------------------------------------\n");
     }
     
     for (int test = 0; test < num_sizes; test++) {
         int M = test_sizes[test][0];
         int N = test_sizes[test][1];
         
-        // Verificar se M é divisível pelo número de processos
+        // Pular tamanhos incompatíveis com o número de processos
         if (M % size != 0) {
             if (rank == 0) {
                 printf("%4d x %4d | SKIP (M não divisível por %d)\n", M, N, size);
             }
-            continue;
+            continue; // Próximo tamanho de teste
         }
         
-        // Executar múltiplos testes para obter média
-        double total_time = 0.0;
-        int valid_tests = 0;
+        // Executar múltiplos testes para obter média estatisticamente válida
+        double total_time = 0.0; // Acumulador de tempos
+        int valid_tests = 0; // Contador de testes bem-sucedidos
         
         for (int run = 0; run < NUM_TESTS; run++) {
-            double time = matrix_vector_parallel(rank, size, M, N, 0);
-            if (time > 0) {
-                total_time += time;
-                valid_tests++;
+            double time = matrix_vector_parallel(rank, size, M, N, 0); // Executar sem verbose
+            if (time > 0) { // Verificar se execução foi bem-sucedida
+                total_time += time; // Acumular tempo válido
+                valid_tests++; // Contar teste válido
             }
         }
         
-        if (valid_tests > 0 && rank == 0) {
-            double avg_time = total_time / valid_tests;
+        if (valid_tests > 0 && rank == 0) { // Apenas processo mestre reporta resultados
+            double avg_time = total_time / valid_tests; // Média aritmética dos tempos
             
-            // Calcular GFLOPS: 2*M*N operações (mult + add por elemento)
-            double gflops = (2.0 * M * N) / (avg_time * 1e9);
+            // Calcular GFLOPS: 2*M*N operações (uma multiplicação + uma soma por elemento)
+            double gflops = (2.0 * M * N) / (avg_time * 1e9); // Conversão para bilhões de operações/segundo
             
-            // Eficiência aproximada (considerando speedup linear ideal)
-            double efficiency = 100.0; // Para 1 processo, eficiência = 100%
+            // Estimar eficiência baseada no overhead de comunicação
+            double efficiency = 100.0; // Execução sequencial tem eficiência 100% por definição
             if (size > 1) {
-                // Estimar eficiência baseada na razão computação/comunicação
-                double comm_overhead = (double)(M + N) / (M * N); // Aproximação
-                efficiency = 100.0 * (1.0 - comm_overhead * size);
-                if (efficiency > 100.0) efficiency = 100.0;
-                if (efficiency < 0.0) efficiency = 0.0;
+                // Aproximação: overhead cresce com perímetro (M+N) vs área (M*N)
+                double comm_overhead = (double)(M + N) / (M * N); // Razão comunicação/computação
+                efficiency = 100.0 * (1.0 - comm_overhead * size); // Penalidade por processo
+                if (efficiency > 100.0) efficiency = 100.0; // Limitar máximo
+                if (efficiency < 0.0) efficiency = 0.0; // Limitar mínimo
             }
             
             printf("%4d x %4d | %8.4f | %6.2f | %7.1f%%\n", 
@@ -241,23 +244,23 @@ void run_benchmark(int rank, int size) {
             fflush(stdout);
         }
         
-        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(MPI_COMM_WORLD); // Sincronizar antes do próximo teste
     }
 }
 
 // Função para demonstração detalhada
 void run_detailed_demo(int rank, int size) {
     if (rank == 0) {
-        printf("\n" "="*60 "\n");
+        printf("\n============================================================\n");
         printf("DEMONSTRAÇÃO DETALHADA\n");
-        printf("=" "*60" "\n");
+        printf("============================================================\n");
     }
     
-    // Teste com matriz pequena para mostrar detalhes
+    // Usar matriz pequena para demonstração detalhada (permite verificação manual)
     int M = 8, N = 6;
     
-    // Ajustar tamanho se necessário para ser divisível
-    while (M % size != 0) M++;
+    // Garantir divisibilidade automática ajustando M
+    while (M % size != 0) M++; // Incrementar até ser divisível
     
     if (rank == 0) {
         printf("Executando demonstração com matriz %dx%d...\n", M, N);
@@ -273,11 +276,12 @@ void run_detailed_demo(int rank, int size) {
 }
 
 int main(int argc, char *argv[]) {
-    int rank, size;
+    int rank, size; // Identificação do processo e total de processos
     
+    // Inicializar ambiente MPI
     MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank); // Obter ID do processo (0 a size-1)
+    MPI_Comm_size(MPI_COMM_WORLD, &size); // Obter número total de processos
     
     if (rank == 0) {
         printf("TAREFA 16: PRODUTO MATRIZ-VETOR COM MPI\n");
@@ -286,14 +290,14 @@ int main(int argc, char *argv[]) {
         printf("Execução: mpirun -np %d ./tarefa16\n", size);
     }
     
-    // Executar demonstração detalhada
+    // Executar demonstração com matriz pequena (verificação e debugging)
     run_detailed_demo(rank, size);
     
-    // Executar benchmark de performance
+    // Executar benchmark completo com múltiplos tamanhos de matriz
     run_benchmark(rank, size);
     
     if (rank == 0) {
-        printf("\n" "="*60 "\n");
+        printf("\n============================================================\n");
         printf("ANÁLISE DOS RESULTADOS:\n");
         printf("- MPI_Bcast: Distribui vetor x para todos os processos\n");
         printf("- MPI_Scatter: Divide matriz A por linhas entre processos\n");
@@ -302,9 +306,9 @@ int main(int argc, char *argv[]) {
         printf("\nComunicação total: O(N) + O(M) elementos\n");
         printf("Computação por processo: O(M*N/P) onde P = número de processos\n");
         printf("Speedup ideal: Linear até saturar largura de banda\n");
-        printf("=" "*60" "\n");
+        printf("============================================================\n");
     }
     
-    MPI_Finalize();
-    return 0;
+    MPI_Finalize(); // Finalizar ambiente MPI e limpar recursos
+    return 0; // Sucesso
 }

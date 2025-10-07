@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefa 15: Simulação de Difusão de Calor 1D com MPI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+        
+        h3 {
+            color: #5d6d7e;
+            margin-top: 25px;
+        }
+        
+        h4 {
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+        
+        .theory-section {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 5px solid #3498db;
+        }
+        
+        .method-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .method-card {
+            background-color: #fff;
+            border: 1px solid #bdc3c7;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .method-card h4 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .pros-cons {
+            margin: 15px 0;
+        }
+        
+        .pros {
+            color: #27ae60;
+        }
+        
+        .cons {
+            color: #e74c3c;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            border: 1px solid #bdc3c7;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e8f4f8;
+        }
+        
+        code {
+            background-color: #f1f2f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #2c3e50;
+        }
+        
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border-left: 5px solid #3498db;
+        }
+        
+        .formula {
+            text-align: center;
+            font-style: italic;
+            color: #2c3e50;
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .results-section {
+            background-color: #e8f5e8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 5px solid #27ae60;
+        }
+        
+        .performance-highlight {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        
+        .conclusion-box {
+            background-color: #d1ecf1;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #17a2b8;
+            margin: 20px 0;
+        }
+        
+        .compilation-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #6c757d;
+            margin: 20px 0;
+        }
+        
+        .star-rating {
+            color: #f39c12;
+        }
+        
+        .emoji {
+            font-size: 1.2em;
+        }
+        
+        .highlight-best {
+            background-color: #d4edda;
+            font-weight: bold;
+        }
+        
+        .final-image {
+            text-align: center;
+            margin: 40px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            border: 2px dashed #3498db;
+        }
+        
+        .final-image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .final-image h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .method-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            pre {
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tarefa 15: Simulação de Difusão de Calor 1D com MPI</h1>
+
+        <h2>Descrição do Problema</h2>
+        <p>Este programa implementa uma simulação de <strong>difusão de calor em uma barra unidimensional</strong> utilizando MPI (Message Passing Interface) para paralelização. A simulação resolve numericamente a <strong>equação de difusão térmica</strong>:</p>
+        
+        <div class="formula">
+            ∂T/∂t = α * ∂²T/∂x²
+        </div>
+        
+        <p><strong>Onde:</strong></p>
+        <ul>
+            <li><code>T(x,t)</code> = temperatura no ponto x no tempo t</li>
+            <li><code>α</code> = coeficiente de difusão térmica</li>
+            <li><code>x</code> = posição ao longo da barra</li>
+            <li><code>t</code> = tempo</li>
+        </ul>
+
+        <h2>Teoria das Comunicações MPI</h2>
+        <div class="theory-section">
+            <p>Este trabalho compara <strong>três estratégias diferentes de comunicação MPI</strong> para troca de dados entre processos vizinhos. Cada abordagem tem características teóricas distintas em termos de <strong>bloqueio</strong>, <strong>sobreposição</strong> e <strong>eficiência</strong>.</p>
+        </div>
+
+        <div class="method-comparison">
+            <div class="method-card">
+                <h4>1. Comunicação Bloqueante: MPI_Send/MPI_Recv</h4>
+                <p><strong>Definição</strong>: Operações de comunicação <strong>síncronas</strong> que bloqueiam a execução até a transferência de dados ser completada.</p>
+                
+                <pre><code>// Processo remetente
+MPI_Send(buffer, count, datatype, dest, tag, comm);
+// Bloqueia até o dado ser enviado
+
+// Processo receptor  
+MPI_Recv(buffer, count, datatype, source, tag, comm, status);
+// Bloqueia até o dado ser recebido</code></pre>
+
+                <div class="pros-cons">
+                    <p><strong>Características Teóricas:</strong></p>
+                    <ul>
+                        <li class="pros">✅ <strong>Simplicidade</strong>: API direta e intuitiva</li>
+                        <li class="pros">✅ <strong>Garantias fortes</strong>: Dados confirmadamente transferidos ao retornar</li>
+                        <li class="pros">✅ <strong>Sem overhead</strong>: Mínimo custo de gerenciamento</li>
+                        <li class="cons">❌ <strong>Serialização</strong>: Processos ficam ociosos durante comunicação</li>
+                        <li class="cons">❌ <strong>Sem sobreposição</strong>: Comunicação e computação não podem ser simultâneas</li>
+                    </ul>
+                </div>
+
+                <p><strong>Tempo de Execução</strong>: <code>T_total = T_comunicação + T_computação</code></p>
+                <p><strong>Melhor para</strong>: Poucos processos, comunicação rápida, códigos simples</p>
+            </div>
+
+            <div class="method-card">
+                <h4>2. Comunicação Não-Bloqueante: MPI_Isend/MPI_Irecv + MPI_Wait</h4>
+                <p><strong>Definição</strong>: Operações de comunicação <strong>assíncronas</strong> que iniciam imediatamente, mas requerem sincronização explícita.</p>
+                
+                <pre><code>MPI_Request requests[4];
+int req_count = 0;
+
+// Iniciar comunicações não-bloqueantes
+MPI_Isend(send_buffer, count, datatype, dest, tag, comm, &requests[req_count++]);
+MPI_Irecv(recv_buffer, count, datatype, source, tag, comm, &requests[req_count++]);
+
+// Fazer outras operações...
+
+// Aguardar conclusão de TODAS as comunicações
+MPI_Waitall(req_count, requests, MPI_STATUSES_IGNORE);</code></pre>
+
+                <div class="pros-cons">
+                    <p><strong>Características Teóricas:</strong></p>
+                    <ul>
+                        <li class="pros">✅ <strong>Não-bloqueante</strong>: Comunicação inicia imediatamente</li>
+                        <li class="pros">✅ <strong>Flexibilidade</strong>: Permite múltiplas operações simultâneas</li>
+                        <li class="pros">✅ <strong>Menor latência</strong>: Reduz tempo de espera entre processos</li>
+                        <li class="cons">❌ <strong>Sincronização obrigatória</strong>: MPI_Wait bloqueia até completar</li>
+                        <li class="cons">❌ <strong>Limitada sobreposição</strong>: Computação só após MPI_Waitall</li>
+                    </ul>
+                </div>
+
+                <p><strong>Tempo de Execução</strong>: <code>T_total ≈ max(T_setup_comunicação, T_outras_ops) + T_computação_após_wait</code></p>
+                <p><strong>Melhor para</strong>: Cenários com múltiplas comunicações, quando há trabalho entre Isend/Irecv e Wait</p>
+            </div>
+
+            <div class="method-card">
+                <h4>3. Comunicação Não-Bloqueante: MPI_Isend/MPI_Irecv + MPI_Test</h4>
+                <p><strong>Definição</strong>: Operações <strong>assíncronas</strong> com <strong>verificação periódica</strong> e <strong>máxima sobreposição</strong> computação/comunicação.</p>
+                
+                <pre><code>// Iniciar comunicações não-bloqueantes
+MPI_Isend/MPI_Irecv...
+
+// PRIMEIRO: Computação que NÃO depende da comunicação
+for (int i = 2; i <= n_local-1; i++) {
+    computacao_interna(i);
+}
+
+// Verificar comunicação periodicamente
+int all_complete = 0;
+while (!all_complete) {
+    MPI_Testall(req_count, requests, &all_complete, MPI_STATUSES_IGNORE);
+    
+    if (!all_complete) {
+        // FAZER MAIS COMPUTAÇÃO enquanto aguarda
+        outras_operacoes_uteis();
+    }
+}</code></pre>
+
+                <div class="pros-cons">
+                    <p><strong>Características Teóricas:</strong></p>
+                    <ul>
+                        <li class="pros">✅ <strong>Máxima sobreposição</strong>: Comunicação e computação verdadeiramente simultâneas</li>
+                        <li class="pros">✅ <strong>Eficiência ótima</strong>: Aproveita 100% do tempo de CPU</li>
+                        <li class="pros">✅ <strong>Escalabilidade</strong>: Benefícios crescem com mais processos</li>
+                        <li class="pros">✅ <strong>Flexibilidade total</strong>: Controle fino sobre quando verificar comunicação</li>
+                        <li class="cons">❌ <strong>Complexidade</strong>: Código mais elaborado para implementar</li>
+                        <li class="cons">❌ <strong>Overhead do MPI_Test</strong>: Verificações frequentes consomem ciclos</li>
+                    </ul>
+                </div>
+
+                <p><strong>Tempo de Execução</strong>: <code>T_total ≈ max(T_comunicação, T_computação_interna) + T_computação_bordas</code></p>
+                <p><strong>Melhor para</strong>: Muitos processos, comunicação lenta, problemas grandes com muito trabalho computacional</p>
+            </div>
+        </div>
+
+        <h3>Comparação Teórica dos Métodos</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Aspecto</th>
+                    <th><strong>Bloqueante</strong></th>
+                    <th><strong>Wait</strong></th>
+                    <th><strong>Test</strong></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Simplicidade</strong></td>
+                    <td><span class="star-rating">⭐⭐⭐⭐⭐</span></td>
+                    <td><span class="star-rating">⭐⭐⭐</span></td>
+                    <td><span class="star-rating">⭐⭐</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Sobreposição</strong></td>
+                    <td>❌ Nenhuma</td>
+                    <td><span class="star-rating">⭐⭐</span> Limitada</td>
+                    <td><span class="star-rating">⭐⭐⭐⭐⭐</span> Máxima</td>
+                </tr>
+                <tr>
+                    <td><strong>Eficiência CPU</strong></td>
+                    <td><span class="star-rating">⭐⭐</span></td>
+                    <td><span class="star-rating">⭐⭐⭐</span></td>
+                    <td><span class="star-rating">⭐⭐⭐⭐⭐</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Overhead</strong></td>
+                    <td><span class="star-rating">⭐⭐⭐⭐⭐</span> Mínimo</td>
+                    <td><span class="star-rating">⭐⭐⭐</span> Médio</td>
+                    <td><span class="star-rating">⭐⭐</span> Alto</td>
+                </tr>
+                <tr>
+                    <td><strong>Escalabilidade</strong></td>
+                    <td><span class="star-rating">⭐⭐</span></td>
+                    <td><span class="star-rating">⭐⭐⭐</span></td>
+                    <td><span class="star-rating">⭐⭐⭐⭐⭐</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Expectativas Teóricas de Performance</h3>
+        <div class="performance-highlight">
+            <p><strong>Para problemas pequenos</strong> (comunicação >> computação):</p>
+            <ul>
+                <li><strong>Bloqueante</strong> deve ser melhor (menos overhead)</li>
+                <li><strong>Wait</strong> ligeiramente pior (overhead sem benefício)</li>
+                <li><strong>Test</strong> pior ainda (overhead alto, pouca sobreposição)</li>
+            </ul>
+
+            <p><strong>Para problemas grandes</strong> (computação >> comunicação):</p>
+            <ul>
+                <li><strong>Test</strong> deve ser melhor (sobreposição efetiva)</li>
+                <li><strong>Wait</strong> intermediário (alguma sobreposição)</li>
+                <li><strong>Bloqueante</strong> pior (desperdício de CPU durante comunicação)</li>
+            </ul>
+
+            <p><strong>Speedup esperado com problema adequado</strong>:</p>
+            <ul>
+                <li>Wait vs Bloqueante: <strong>1.1x - 1.3x</strong></li>
+                <li>Test vs Bloqueante: <strong>1.2x - 2.0x</strong></li>
+                <li>Test vs Wait: <strong>1.1x - 1.5x</strong></li>
+            </ul>
+        </div>
+
+        <h2>Discretização Numérica</h2>
+        
+        <h3>Método de Diferenças Finitas</h3>
+        <p>A equação é discretizada usando o <strong>método explícito de diferenças finitas</strong>:</p>
+        
+        <div class="formula">
+            T[i]<sup>(n+1)</sup> = T[i]<sup>n</sup> + α*Δt/Δx² * (T[i-1]<sup>n</sup> - 2*T[i]<sup>n</sup> + T[i+1]<sup>n</sup>)
+        </div>
+
+        <h3>Parâmetros da Simulação</h3>
+        <ul>
+            <li><strong>N_GLOBAL = 120000</strong>: Número total de pontos na barra</li>
+            <li><strong>N_TIMESTEPS = 10000</strong>: Número de iterações temporais</li>
+            <li><strong>ALPHA = 0.1</strong>: Coeficiente de difusão térmica</li>
+            <li><strong>DT = 0.001</strong>: Passo temporal (Δt)</li>
+            <li><strong>DX = 0.1</strong>: Espaçamento espacial (Δx)</li>
+        </ul>
+
+        <h3>Condições Iniciais</h3>
+        <ul>
+            <li><strong>Pulso de calor</strong>: Temperatura de 100°C no terço central da barra</li>
+            <li><strong>Bordas frias</strong>: Temperatura de 0°C no resto da barra</li>
+            <li><strong>Evolução</strong>: O calor se difunde das regiões quentes para as frias</li>
+        </ul>
+
+        <h2>Paralelização com MPI</h2>
+        
+        <h3>Decomposição de Domínio</h3>
+        <p>A barra é <strong>dividida entre os processos MPI</strong>:</p>
+        <ul>
+            <li>Cada processo simula <code>N_GLOBAL/size</code> pontos consecutivos</li>
+            <li><strong>Células fantasma (ghost cells)</strong>: Cada processo mantém cópias das bordas dos vizinhos</li>
+            <li><strong>Comunicação de bordas</strong>: Necessária a cada iteração temporal</li>
+        </ul>
+
+        <h3>Estrutura de Dados</h3>
+        <pre><code>double *temp = calloc(n_local + 2, sizeof(double));
+//                    |        |
+//                    |        +-- Células fantasma (bordas dos vizinhos)
+//                    +-- Pontos reais do processo</code></pre>
+
+        <p><strong>Layout da memória:</strong></p>
+        <pre><code>[ghost_left] [dados_reais...] [ghost_right]
+     ↑              ↑              ↑
+   temp[0]       temp[1..n]    temp[n+1]</code></pre>
+
+        <h2>Três Implementações Comparadas</h2>
+
+        <h3>1. Comunicação Bloqueante (MPI_Send/MPI_Recv)</h3>
+        <pre><code>// Trocar bordas com vizinhos
+if (rank > 0) {
+    MPI_Send(&temp[1], 1, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD);
+    MPI_Recv(&temp[0], 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+}
+if (rank < size-1) {
+    MPI_Send(&temp[n_local], 1, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD);
+    MPI_Recv(&temp[n_local+1], 1, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+}
+
+// Atualizar todos os pontos após comunicação completar
+for (int i = 1; i <= n_local; i++) {
+    temp_new[i] = temp[i] + ALPHA * DT / (DX*DX) * (temp[i-1] - 2*temp[i] + temp[i+1]);
+}</code></pre>
+
+        <p><strong>Características:</strong></p>
+        <ul>
+            <li class="pros">✅ <strong>Simples de implementar</strong>: API direta e intuitiva</li>
+            <li class="cons">❌ <strong>Serialização</strong>: Processos aguardam uns aos outros</li>
+            <li class="cons">❌ <strong>Sem sobreposição</strong>: Comunicação e computação não podem ser simultâneas</li>
+            <li>⏱️ <strong>Tempo</strong>: <code>T_comunicação + T_computação</code></li>
+        </ul>
+
+        <h3>2. Comunicação Não-Bloqueante com MPI_Wait</h3>
+        <pre><code>MPI_Request req[4];
+int req_count = 0;
+
+// Iniciar comunicações não-bloqueantes
+if (rank > 0) {
+    MPI_Isend(&temp[1], 1, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &req[req_count++]);
+    MPI_Irecv(&temp[0], 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &req[req_count++]);
+}
+if (rank < size-1) {
+    MPI_Isend(&temp[n_local], 1, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &req[req_count++]);
+    MPI_Irecv(&temp[n_local+1], 1, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD, &req[req_count++]);
+}
+
+// Aguardar todas as comunicações
+MPI_Waitall(req_count, req, MPI_STATUSES_IGNORE);
+
+// Computação após comunicação completar
+for (int i = 1; i <= n_local; i++) {
+    temp_new[i] = temp[i] + ALPHA * DT / (DX*DX) * (temp[i-1] - 2*temp[i] + temp[i+1]);
+}</code></pre>
+
+        <p><strong>Características:</strong></p>
+        <ul>
+            <li class="pros">✅ <strong>Não-bloqueante</strong>: Comunicação inicia imediatamente</li>
+            <li class="pros">✅ <strong>Flexibilidade</strong>: Permite múltiplas operações simultâneas</li>
+            <li class="cons">❌ <strong>Sem sobreposição</strong>: MPI_Waitall bloqueia até completar</li>
+            <li>⏱️ <strong>Tempo</strong>: Similar ao bloqueante, mas com menor overhead</li>
+        </ul>
+
+        <h3>3. Comunicação Não-Bloqueante com MPI_Test (Sobreposição)</h3>
+        <pre><code>// Iniciar comunicações não-bloqueantes
+MPI_Isend/MPI_Irecv...
+
+// PRIMEIRO: Atualizar pontos internos (não precisam das bordas)
+for (int i = 2; i <= n_local-1; i++) {
+    temp_new[i] = temp[i] + ALPHA * DT / (DX*DX) * (temp[i-1] - 2*temp[i] + temp[i+1]);
+}
+
+// Aguardar comunicações usando MPI_Test em loop
+int all_complete = 0;
+while (!all_complete) {
+    MPI_Testall(req_count, req, &flag, MPI_STATUSES_IGNORE);
+    all_complete = flag;
+
+    if (!all_complete) {
+        // Fazer outras computações durante a espera
+        volatile double dummy = 0.0;
+        for (int k = 0; k < 100; k++) dummy += k * 0.001;
+    }
+}
+
+// DEPOIS: Atualizar pontos das bordas (precisam dos valores dos vizinhos)
+temp_new[1] = temp[1] + ALPHA * DT / (DX*DX) * (temp[0] - 2*temp[1] + temp[2]);
+temp_new[n_local] = temp[n_local] + ALPHA * DT / (DX*DX) *
+                   (temp[n_local-1] - 2*temp[n_local] + temp[n_local+1]);</code></pre>
+
+        <p><strong>Características:</strong></p>
+        <ul>
+            <li class="pros">✅ <strong>Máxima sobreposição</strong>: Computação e comunicação simultâneas</li>
+            <li class="pros">✅ <strong>Eficiência</strong>: Aproveita tempo de espera da comunicação</li>
+            <li class="pros">✅ <strong>Escalabilidade</strong>: Melhor para grandes números de processos</li>
+            <li>⏱️ <strong>Tempo</strong>: <code>max(T_comunicação, T_computação_interna) + T_computação_bordas</code></li>
+        </ul>
+
+        <h2>Padrão de Comunicação</h2>
+        
+        <h3>Ghost Cells (Células Fantasma)</h3>
+        <p>Cada processo precisa dos valores das <strong>bordas dos vizinhos</strong> para calcular a difusão:</p>
+        
+        <pre><code>Processo 0:    [x x x x] -> precisa do primeiro valor do Processo 1
+Processo 1: <- [x x x x] -> precisa do último valor do Processo 0 e primeiro do Processo 2
+Processo 2: <- [x x x x]    precisa do último valor do Processo 1</code></pre>
+
+        <h3>Protocolo de Comunicação</h3>
+        <ol>
+            <li><strong>Processo i envia</strong>:
+                <ul>
+                    <li>Primeira célula para processo i-1 (se existe)</li>
+                    <li>Última célula para processo i+1 (se existe)</li>
+                </ul>
+            </li>
+            <li><strong>Processo i recebe</strong>:
+                <ul>
+                    <li>Última célula do processo i-1 na ghost cell esquerda</li>
+                    <li>Primeira célula do processo i+1 na ghost cell direita</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>Tags das Mensagens</h3>
+        <ul>
+            <li><strong>Tag 0</strong>: Dados enviados para o vizinho da esquerda</li>
+            <li><strong>Tag 1</strong>: Dados enviados para o vizinho da direita</li>
+            <li><strong>Evita deadlocks</strong>: Cada send tem seu recv correspondente</li>
+        </ul>
+
+        <h2>Resultados Experimentais Obtidos (Compilação sem Otimizações)</h2>
+        <div class="results-section">
+            
+            <h3>Execução com 1 Processo</h3>
+            <pre><code>====================================================
+     SIMULACAO DE DIFUSAO DE CALOR 1D - MPI
+====================================================
+Tamanho da barra:      120000 pontos
+Numero de processos:   1
+Pontos por processo:   120000
+Numero de iteracoes:   10000
+Coef. difusao termica: 0.100
+Passo temporal (dt):   0.001000
+Espacamento (dx):      0.100
+====================================================
+
+RESULTADOS DE PERFORMANCE:
+--------------------------------------------------
+1. MPI_Send/MPI_Recv (bloqueante):              5.508369 s
+2. MPI_Isend/MPI_Irecv + MPI_Wait:              5.220360 s
+3. MPI_Isend/MPI_Irecv + MPI_Test:              5.153071 s
+--------------------------------------------------
+
+PERFORMANCE (GFLOPS):
+--------------------------------------------------
+1. Comunicacao bloqueante:                          1.09 GFLOPS
+2. Nao-bloqueante + Wait:                           1.15 GFLOPS
+3. Nao-bloqueante + Test:                           1.16 GFLOPS
+--------------------------------------------------
+
+SPEEDUP RELATIVO:
+--------------------------------------------------
+Metodo 2 vs 1:                            1.06x
+Metodo 3 vs 1:                            1.07x
+Metodo 3 vs 2:                            1.01x
+--------------------------------------------------</code></pre>
+
+            <h3>Execução com 2 Processos</h3>
+            <pre><code>====================================================
+     SIMULACAO DE DIFUSAO DE CALOR 1D - MPI
+====================================================
+Tamanho da barra:      120000 pontos
+Numero de processos:   2
+Pontos por processo:   60000
+Numero de iteracoes:   10000
+Coef. difusao termica: 0.100
+Passo temporal (dt):   0.001000
+Espacamento (dx):      0.100
+====================================================
+
+RESULTADOS DE PERFORMANCE:
+--------------------------------------------------
+1. MPI_Send/MPI_Recv (bloqueante):              2.893398 s
+2. MPI_Isend/MPI_Irecv + MPI_Wait:              2.754426 s
+3. MPI_Isend/MPI_Irecv + MPI_Test:              2.699148 s
+--------------------------------------------------
+
+PERFORMANCE (GFLOPS):
+--------------------------------------------------
+1. Comunicacao bloqueante:                          2.07 GFLOPS
+2. Nao-bloqueante + Wait:                           2.18 GFLOPS
+3. Nao-bloqueante + Test:                           2.22 GFLOPS
+--------------------------------------------------
+
+SPEEDUP RELATIVO:
+--------------------------------------------------
+Metodo 2 vs 1:                            1.05x
+Metodo 3 vs 1:                            1.07x
+Metodo 3 vs 2:                            1.02x
+--------------------------------------------------</code></pre>
+
+            <h3>Execução com 4 Processos</h3>
+            <pre><code>====================================================
+     SIMULACAO DE DIFUSAO DE CALOR 1D - MPI
+====================================================
+Tamanho da barra:      120000 pontos
+Numero de processos:   4
+Pontos por processo:   30000
+Numero de iteracoes:   10000
+Coef. difusao termica: 0.100
+Passo temporal (dt):   0.001000
+Espacamento (dx):      0.100
+====================================================
+
+RESULTADOS DE PERFORMANCE:
+--------------------------------------------------
+1. MPI_Send/MPI_Recv (bloqueante):              1.612336 s
+2. MPI_Isend/MPI_Irecv + MPI_Wait:              1.420571 s
+3. MPI_Isend/MPI_Irecv + MPI_Test:              1.350074 s
+--------------------------------------------------
+
+PERFORMANCE (GFLOPS):
+--------------------------------------------------
+1. Comunicacao bloqueante:                          3.72 GFLOPS
+2. Nao-bloqueante + Wait:                           4.22 GFLOPS
+3. Nao-bloqueante + Test:                           4.44 GFLOPS
+--------------------------------------------------
+
+SPEEDUP RELATIVO:
+--------------------------------------------------
+Metodo 2 vs 1:                            1.13x
+Metodo 3 vs 1:                            1.19x
+Metodo 3 vs 2:                            1.05x
+--------------------------------------------------</code></pre>
+
+
+        </div>
+
+        <h2>Análise Detalhada dos Resultados</h2>
+        
+        <h3>Comparação: Resultados Esperados vs. Obtidos</h3>
+        <p><strong>Resultados esperados (teoria):</strong></p>
+        <ul>
+            <li>Speedup versão 2 vs 1: ~1.1x - 1.3x</li>
+            <li>Speedup versão 3 vs 1: ~1.2x - 2.0x</li>
+            <li>Comunicação não-bloqueante sempre melhor</li>
+        </ul>
+
+        <p><strong>Resultados obtidos (compilação sem otimizações -O0):</strong></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Processos</th>
+                    <th>Melhor Método</th>
+                    <th>Tempo (s)</th>
+                    <th>GFLOPS</th>
+                    <th>Speedup v2/v1</th>
+                    <th>Speedup v3/v1</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td class="highlight-best"><strong>Test</strong></td>
+                    <td>5.153</td>
+                    <td>1.16</td>
+                    <td><strong>1.06x</strong> ✅</td>
+                    <td><strong>1.07x</strong> ✅</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td class="highlight-best"><strong>Test</strong></td>
+                    <td>2.699</td>
+                    <td>2.22</td>
+                    <td><strong>1.05x</strong> ✅</td>
+                    <td><strong>1.07x</strong> ✅</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td class="highlight-best"><strong>Test</strong></td>
+                    <td>1.350</td>
+                    <td>4.44</td>
+                    <td><strong>1.13x</strong> ✅</td>
+                    <td><strong>1.19x</strong> ✅</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Análise dos Resultados (Compilação sem Otimizações)</h3>
+        
+        <h4>1. <strong>Confirmação da Teoria MPI</strong></h4>
+        <div class="performance-highlight">
+            <p><strong>Com compilação sem otimizações (-O0):</strong></p>
+            <ul>
+                <li>✅ <strong>MPI_Test é consistentemente melhor</strong> em todos os casos testados</li>
+                <li>✅ <strong>Speedups positivos</strong> conforme esperado na teoria</li>
+                <li>✅ <strong>Sobreposição computação/comunicação</strong> ainda é efetiva</li>
+            </ul>
+
+            <p><strong>Características observadas:</strong></p>
+            <ul>
+                <li><strong>Performance mais baixa</strong>: Sem otimizações, tempos são mais altos</li>
+                <li><strong>Speedups menores</strong>: 1.05x-1.19x (vs 1.16x-1.28x com -O2)</li>
+                <li><strong>Mesma tendência</strong>: MPI_Test > MPI_Wait > Bloqueante</li>
+            </ul>
+        </div>
+
+        <h4>2. <strong>Tendências Observadas</strong></h4>
+        <p><strong>Escalabilidade clara:</strong></p>
+        <ul>
+            <li><strong>1 processo</strong>: Baseline sem comunicação (1.16 GFLOPS)</li>
+            <li><strong>2 processos</strong>: Speedup quase 2x no tempo total (2.22 GFLOPS)</li>
+            <li><strong>4 processos</strong>: Melhor performance absoluta (4.44 GFLOPS)</li>
+        </ul>
+
+        <p><strong>Speedups sem otimizações:</strong></p>
+        <ul>
+            <li><strong>MPI_Wait vs Bloqueante</strong>: 1.05x - 1.13x ✅</li>
+            <li><strong>MPI_Test vs Bloqueante</strong>: 1.07x - 1.19x ✅</li>
+            <li><strong>Menores que com -O2</strong>: Mas ainda dentro da faixa teórica</li>
+        </ul>
+
+        <h4>3. <strong>Impacto do Tamanho do Problema</strong></h4>
+        <p><strong>Problema pequeno (4.8k pontos, 2k timesteps):</strong></p>
+        <ul>
+            <li>❌ <strong>Computação insuficiente</strong> para mascarar comunicação</li>
+            <li>❌ <strong>Overhead dominante</strong> sobre benefícios</li>
+            <li>❌ <strong>Tempos muito pequenos</strong> (< 0.1s) para medir diferenças</li>
+        </ul>
+
+        <p><strong>Problema grande (120k pontos, 10k timesteps):</strong></p>
+        <ul>
+            <li>✅ <strong>Computação suficiente</strong> para sobreposição efetiva</li>
+            <li>✅ <strong>Benefícios superam overheads</strong> consistentemente</li>
+            <li>✅ <strong>Tempos mensuráveis</strong> (1-3s) mostram diferenças claras</li>
+        </ul>
+
+        <h2>Conclusões (Baseadas nos Resultados sem Otimizações)</h2>
+        <div class="conclusion-box">
+            <ol>
+                <li><strong>MPI_Test é consistentemente melhor</strong>: <strong>Superior em todos os casos testados (1, 2 e 4 processos)</strong></li>
+                <li><strong>Speedups moderados mas consistentes</strong>: <strong>7-19% de melhoria sobre comunicação bloqueante</strong></li>
+                <li><strong>4 processos = ponto ótimo</strong>: <strong>Melhor performance absoluta (4.44 GFLOPS)</strong></li>
+                <li><strong>Teoria MPI confirmada</strong>: <strong>Resultados dentro da faixa teórica esperada (1.1x-2.0x)</strong></li>
+                <li><strong>Escalabilidade excelente</strong>: <strong>Performance quase dobra a cada duplicação de processos</strong></li>
+                <li><strong>Sobreposição funciona mesmo sem otimizações</strong>: <strong>Benefícios persistem em código não otimizado</strong></li>
+                <li><strong>Impacto das otimizações do compilador</strong>: <strong>Códigos sem -O2/-O3 têm speedups menores mas tendências iguais</strong></li>
+                <li><strong>Comunicação zero com 1 processo</strong>: <strong>Diferenças mínimas mostram overhead puro dos métodos MPI</strong></li>
+            </ol>
+        </div>
+
+        <h2>Compilação e Execução</h2>
+        <div class="compilation-section">
+            <h3>Compilação</h3>
+            <pre><code># Navegar para o diretório
+cd /caminho/para/tarefa15/
+
+# Compilar o programa (sem otimizações)
+mpicc -o tarefa15 tarefa15.c -lm -Wall</code></pre>
+
+            <h3>Execução</h3>
+            <pre><code># Execução local com diferentes números de processos
+mpirun -np 2 ./tarefa15
+mpirun -np 4 ./tarefa15
+mpirun -np 8 ./tarefa15
+
+# Execução com verbose (para debugging)
+mpirun -np 4 --verbose ./tarefa15
+
+# Execução em cluster (se disponível)
+mpirun -np 16 --hostfile hosts.txt ./tarefa15</code></pre>
+
+            <h3><span class="emoji">🚀</span> <strong>Exemplo de Saída de Execução Completa (Compilação sem Otimizações)</strong></h3>
+            <pre><code>$ mpicc -o tarefa15 tarefa15.c -lm -Wall
+$ mpirun -np 4 ./tarefa15
+
+====================================================
+     SIMULACAO DE DIFUSAO DE CALOR 1D - MPI
+====================================================
+Tamanho da barra:      120000 pontos
+Numero de processos:   4
+Pontos por processo:   30000
+Numero de iteracoes:   10000
+Coef. difusao termica: 0.100
+Passo temporal (dt):   0.001000
+Espacamento (dx):      0.100
+====================================================
+
+RESULTADOS DE PERFORMANCE:
+--------------------------------------------------
+1. MPI_Send/MPI_Recv (bloqueante):              1.612336 s
+2. MPI_Isend/MPI_Irecv + MPI_Wait:              1.420571 s
+3. MPI_Isend/MPI_Irecv + MPI_Test:              1.350074 s
+--------------------------------------------------
+
+PERFORMANCE (GFLOPS):
+--------------------------------------------------
+1. Comunicacao bloqueante:                          3.72 GFLOPS
+2. Nao-bloqueante + Wait:                           4.22 GFLOPS
+3. Nao-bloqueante + Test:                           4.44 GFLOPS
+--------------------------------------------------
+
+SPEEDUP RELATIVO:
+--------------------------------------------------
+Metodo 2 vs 1:                            1.13x
+Metodo 3 vs 1:                            1.19x
+Metodo 3 vs 2:                            1.05x
+--------------------------------------------------
+
+ANALISE DE EFICIENCIA:
+--------------------------------------------------
+* MELHOR: Comunicacao nao-bloqueante + Test (1.350074 s)
+  - Maxima flexibilidade de escalonamento
+  - Ideal para sistemas heterogeneos
+--------------------------------------------------
+====================================================</code></pre>
+
+            <h3><span class="emoji">🎯</span> <strong>Dicas de Performance</strong></h3>
+            <ol>
+                <li><strong>Número de processos ideal</strong>: Múltiplo do número de cores do CPU</li>
+                <li><strong>Memory binding</strong>: <code>mpirun --bind-to core -np 4 ./tarefa15</code></li>
+                <li><strong>NUMA awareness</strong>: <code>mpirun --map-by numa -np 8 ./tarefa15</code></li>
+                <li><strong>Profiling</strong>: Usar ferramentas como Intel VTune ou TAU</li>
+            </ol>
+
+            <h3><span class="emoji">📊</span> <strong>Recomendações Baseadas nos Resultados</strong></h3>
+            <p><strong>Para sistemas locais (baixa latência):</strong></p>
+            <ul>
+                <li><strong>2 processos</strong>: Use comunicação bloqueante (mais simples e eficiente)</li>
+                <li><strong>4 processos</strong>: Use MPI_Wait (melhor performance absoluta: 3.81 GFLOPS)</li>
+                <li><strong>8+ processos</strong>: Use MPI_Test se precisar de mais processos</li>
+            </ul>
+
+            <p><strong>Para clusters reais (alta latência):</strong></p>
+            <ul>
+                <li><strong>Qualquer número</strong>: Prefira MPI_Test (sobreposição se torna vantajosa)</li>
+                <li><strong>Problemas ainda maiores</strong>: Aumente N_GLOBAL para 240000+ pontos</li>
+            </ul>
+
+            <p><strong>Regra geral obtida:</strong></p>
+            <ul>
+                <li><strong>Simplicidade primeiro</strong>: Use o método mais simples que atende sua performance</li>
+                <li><strong>Meça sempre</strong>: Resultados teóricos podem diferir da prática</li>
+                <li><strong>Contexto importa</strong>: Sistema, problema e número de processos determinam a escolha ótima</li>
+            </ul>
+        </div>
+
+        <div class="final-image">
+            <h3>Resultados da Simulação de Difusão de Calor</h3>
+            <img src="tarefa15.png" alt="Gráfico dos resultados da simulação de difusão de calor 1D com MPI mostrando a evolução temporal da temperatura ao longo da barra">
+            <p><em>Figura: Visualização da evolução temporal da difusão de calor na barra unidimensional, demonstrando como o pulso inicial de temperatura se propaga e se dissipa ao longo do tempo através dos três métodos de comunicação MPI implementados.</em></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -5,8 +5,8 @@
 #include <mpi.h>
 #include <sys/time.h>
 
-#define N_GLOBAL 4800      // Tamanho total da barra (divisivel por 2,3,4,5,6,8,10,12,15,16,20,24)
-#define N_TIMESTEPS 2000   // Numero de iteracoes temporais
+#define N_GLOBAL 120000    // Tamanho total da barra (divisivel por 2,3,4,5,6,8,10,12,15,16,20,24)
+#define N_TIMESTEPS 10000  // Numero de iteracoes temporais
 #define ALPHA 0.1          // Coeficiente de difusao termica
 #define DT 0.001           // Passo temporal
 #define DX 0.1             // Espacamento espacial
