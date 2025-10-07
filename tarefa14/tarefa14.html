@@ -574,6 +574,60 @@ if (rank == 0) {
             </div>
         </div>
 
+        <h3>Explicação da Mudança de Dominância entre Regimes</h3>
+        <div class="warning-box">
+            <p>A mudança de dominância entre o regime de latência e o regime de largura de banda é um fenômeno fundamental em comunicação MPI que pode ser explicado pela natureza dos custos envolvidos na transmissão de dados:</p>
+            
+            <h4>1. Análise dos Custos de Comunicação</h4>
+            <p>Toda comunicação MPI possui dois componentes principais de tempo:</p>
+            <ul>
+                <li><strong>Custo fixo (latência α):</strong> Tempo necessário para estabelecer a comunicação, processar headers, sincronizar processos e realizar handshakes entre remetente e destinatário. Este custo é independente do tamanho da mensagem.</li>
+                <li><strong>Custo variável (largura de banda β×n):</strong> Tempo proporcional ao tamanho da mensagem, determinado pela velocidade de transferência efetiva dos dados através do meio de comunicação.</li>
+            </ul>
+            
+            <h4>2. Comportamento nos Diferentes Regimes</h4>
+            <p><strong>No regime de latência (mensagens pequenas ≤ 2KB):</strong></p>
+            <ul>
+                <li>O termo α (latência) domina a equação T(n) = α + β×n</li>
+                <li>Como n é pequeno, β×n é desprezível comparado a α</li>
+                <li>Resultado: tempo praticamente constante (~1.0-1.6 μs) independente do tamanho</li>
+                <li>O overhead de estabelecimento da comunicação representa a maior parte do tempo total</li>
+            </ul>
+            
+            <p><strong>No regime de largura de banda (mensagens grandes > 4KB):</strong></p>
+            <ul>
+                <li>O termo β×n passa a dominar a equação T(n) = α + β×n</li>
+                <li>Como n é grande, β×n >> α</li>
+                <li>Resultado: tempo cresce linearmente com o tamanho da mensagem</li>
+                <li>A velocidade de transferência dos dados torna-se o fator limitante</li>
+            </ul>
+            
+            <h4>3. O Ponto de Transição (2-4KB)</h4>
+            <p>A transição ocorre quando α ≈ β×n, ou seja, quando os custos fixos e variáveis se tornam comparáveis. Neste experimento:</p>
+            <ul>
+                <li>Para 2KB: tempo = 1.58 μs (ainda dominado pela latência)</li>
+                <li>Para 4KB: tempo = 4.30 μs (início da dominância da largura de banda)</li>
+                <li>O salto de 2.7x no tempo indica que o sistema começou a ser limitado pela transferência de dados</li>
+            </ul>
+            
+            <h4>4. Fatores Técnicos que Influenciam a Transição</h4>
+            <ul>
+                <li><strong>Buffers internos:</strong> Mensagens pequenas podem ser copiadas para buffers internos do MPI, enquanto mensagens grandes requerem transferência direta</li>
+                <li><strong>Protocolos de transferência:</strong> MPI pode usar diferentes estratégias (eager vs rendezvous protocol) baseadas no tamanho da mensagem</li>
+                <li><strong>Sincronização MPI_Ssend:</strong> A garantia de sincronização adiciona overhead constante, mas torna a medição mais precisa</li>
+                <li><strong>Características do hardware:</strong> A largura de banda efetiva da memória e do sistema de interconexão determina o coeficiente β</li>
+            </ul>
+            
+            <h4>5. Implicações Práticas</h4>
+            <p>Compreender esta transição é crucial para:</p>
+            <ul>
+                <li><strong>Otimização de aplicações:</strong> Mensagens pequenas devem ser agrupadas para amortizar a latência</li>
+                <li><strong>Escolha de algoritmos:</strong> Diferentes estratégias são eficientes para diferentes tamanhos de dados</li>
+                <li><strong>Predição de performance:</strong> O modelo α-β permite estimar tempos de comunicação</li>
+                <li><strong>Tuning de sistemas:</strong> Identificar gargalos de latência vs largura de banda</li>
+            </ul>
+        </div>
+
         <h3>Métricas Importantes - Versão MPI_Ssend</h3>
         <div class="highlight-box">
             <ul>
@@ -584,10 +638,6 @@ if (rank == 0) {
             </ul>
         </div>
 
-        <h3>Cálculos de Performance:</h3>
-        <pre><code>Largura de Banda = (Tamanho da Mensagem × 2) / Tempo Round-trip
-Para 1MB: (1.048.576 × 2 bytes) / 224.12 μs = ~9.35 MB/s ≈ 4.7 GB/s efetiva</code></pre>
-
         <h3>Observações Importantes:</h3>
         <ol>
             <li><strong>MPI_Ssend é mais lento:</strong> Latência base ~2.5x maior que MPI_Send</li>
@@ -596,18 +646,6 @@ Para 1MB: (1.048.576 × 2 bytes) / 224.12 μs = ~9.35 MB/s ≈ 4.7 GB/s efetiva<
             <li><strong>Ideal para benchmarks:</strong> Medição precisa da latência real de comunicação</li>
         </ol>
     </div>
-
-    <h2 id="interpretacao">Interpretação dos Resultados</h2>
-
-    <h3>Modelo de Performance MPI</h3>
-    <p>O tempo total de comunicação MPI pode ser modelado como:</p>
-    <pre><code>T(n) = α + β × n</code></pre>
-    <p>Onde:</p>
-    <ul>
-        <li><code>α</code> (alfa) = Latência base - tempo fixo independente do tamanho</li>
-        <li><code>β</code> (beta) = Tempo por byte - inverso da largura de banda</li>
-        <li><code>n</code> = Tamanho da mensagem em bytes</li>
-    </ul>
 
     <h2 id="conclusoes">Conclusões</h2>
     <ol>
