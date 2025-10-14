@@ -272,71 +272,31 @@
       desde simulações científicas até inteligência artificial moderna.
     </div>
 
-    <h2>🧮 Teoria Matemática</h2>
-
-    <h3>1. Série de Leibniz</h3>
-
-    <p>
-      A <strong>Série de Leibniz</strong> é uma das fórmulas mais conhecidas
-      para calcular π, descoberta pelo matemático alemão Gottfried Wilhelm
-      Leibniz:
-    </p>
-
-    <div class="series-formula">
-      π/4 = 1 - 1/3 + 1/5 - 1/7 + 1/9 - 1/11 + ...
-    </div>
+    <h2>🧮 Métodos de Aproximação de π</h2>
 
     <div class="algorithm-box">
-      <h4>Características da Série de Leibniz:</h4>
+      <h3>📈 Comparação dos Dois Métodos</h3>
+      
+      <h4>🔹 Série de Leibniz: π/4 = 1 - 1/3 + 1/5 - 1/7 + ...</h4>
       <ul>
-        <li><strong>Convergência lenta:</strong> O(1/n)</li>
-        <li>
-          <strong>Simples de implementar:</strong> Apenas divisões e alternância
-          de sinais
-        </li>
-        <li><strong>Requer muitas iterações:</strong> Para alta precisão</li>
-        <li><strong>Erro aproximado:</strong> |erro| ≈ 1/(2n+1)</li>
+        <li><strong>Vantagem:</strong> Muito simples de implementar</li>
+        <li><strong>Desvantagem:</strong> Convergência lenta (precisa de muitas iterações)</li>
+        <li><strong>Característica:</strong> Usa denominadores ímpares (1, 3, 5, 7...)</li>
       </ul>
-    </div>
 
-    <h3>2. Série de Nilakantha</h3>
-
-    <p>
-      A <strong>Série de Nilakantha</strong> oferece convergência mais rápida,
-      desenvolvida pelo matemático indiano Nilakantha Somayaji no século XV:
-    </p>
-
-    <div class="series-formula">
-      π = 3 + 4/(2×3×4) - 4/(4×5×6) + 4/(6×7×8) - ...
-    </div>
-
-    <div class="algorithm-box">
-      <h4>Características da Série de Nilakantha:</h4>
+      <h4>⚡ Série de Nilakantha: π = 3 + 4/(2×3×4) - 4/(4×5×6) + ...</h4>
       <ul>
-        <li><strong>Convergência rápida:</strong> O(1/n³)</li>
-        <li>
-          <strong>Baseada em produtos consecutivos:</strong> Três números
-          consecutivos
-        </li>
-        <li><strong>Melhor precisão:</strong> Com menos iterações</li>
-        <li><strong>Erro aproximado:</strong> |erro| ≈ 1/n³</li>
+        <li><strong>Vantagem:</strong> Convergência muito mais rápida</li>
+        <li><strong>Desvantagem:</strong> Cálculo ligeiramente mais complexo</li>
+        <li><strong>Característica:</strong> Usa produtos de três números consecutivos</li>
       </ul>
+
+      <div class="math-box">
+        <strong>Resultado:</strong> Nilakantha atinge alta precisão com muito menos iterações que Leibniz
+      </div>
     </div>
 
     <h2>⚙️ Funcionalidades Implementadas</h2>
-
-    <h3>Algoritmos de Cálculo</h3>
-
-    <div class="code-example">
-      // Série de Leibniz double calculate_pi_leibniz(long long iterations) {
-      double pi_approx = 0.0; int sign = 1; for (long long i = 0; i <
-      iterations; i++) { pi_approx += sign * (1.0 / (2 * i + 1)); sign *= -1; }
-      return 4.0 * pi_approx; } // Série de Nilakantha double
-      calculate_pi_nilakantha(long long iterations) { double pi_approx = 3.0;
-      int sign = 1; for (long long i = 1; i <= iterations; i++) { long long n =
-      2 * i; pi_approx += sign * (4.0 / (n * (n + 1) * (n + 2))); sign *= -1; }
-      return pi_approx; }
-    </div>
 
     <h3>Análise de Performance</h3>
 
@@ -365,16 +325,13 @@
       performance.
     </p>
 
-    <h2>📊 Resultados Esperados</h2>
+    <h2>📊 Resultados da Execução</h2>
 
-    <h3>Tabela de Performance</h3>
-
-    <p>O programa gera uma tabela comparativa mostrando:</p>
+    <h3>🔢 Resultados Completos - Série de Leibniz</h3>
 
     <table class="performance-table">
       <thead>
         <tr>
-          <th>Método</th>
           <th>Iterações</th>
           <th>π Aproximado</th>
           <th>Tempo (s)</th>
@@ -384,44 +341,154 @@
       </thead>
       <tbody>
         <tr>
-          <td>Leibniz</td>
+          <td>100</td>
+          <td>3.131592903559</td>
+          <td>0.000000</td>
+          <td>1.00e-02</td>
+          <td>99.6817%</td>
+        </tr>
+        <tr>
           <td>1,000</td>
-          <td>3.140592653590</td>
-          <td>0.000015</td>
+          <td>3.140592653840</td>
+          <td>0.000003</td>
           <td>1.00e-03</td>
           <td>99.9682%</td>
         </tr>
         <tr>
-          <td>Nilakantha</td>
-          <td>1,000</td>
-          <td>3.141592653590</td>
-          <td>0.000012</td>
-          <td>1.00e-08</td>
-          <td>99.9999%</td>
+          <td>10,000</td>
+          <td>3.141492653590</td>
+          <td>0.000026</td>
+          <td>1.00e-04</td>
+          <td>99.9968%</td>
+        </tr>
+        <tr>
+          <td>100,000</td>
+          <td>3.141582653590</td>
+          <td>0.000290</td>
+          <td>1.00e-05</td>
+          <td>99.9997%</td>
+        </tr>
+        <tr>
+          <td>1,000,000</td>
+          <td>3.141591653590</td>
+          <td>0.002561</td>
+          <td>1.00e-06</td>
+          <td>100.0000%</td>
+        </tr>
+        <tr>
+          <td>10,000,000</td>
+          <td>3.141592553590</td>
+          <td>0.028028</td>
+          <td>1.00e-07</td>
+          <td>100.0000%</td>
         </tr>
       </tbody>
     </table>
 
-    <h3>Análise Teórica dos Resultados</h3>
+    <h3>⚡ Resultados Completos - Série de Nilakantha</h3>
+
+    <table class="performance-table">
+      <thead>
+        <tr>
+          <th>Iterações</th>
+          <th>π Aproximado</th>
+          <th>Tempo (s)</th>
+          <th>Erro</th>
+          <th>Precisão</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>100</td>
+          <td>3.141592410972</td>
+          <td>0.000027</td>
+          <td>2.43e-07</td>
+          <td>100.0000%</td>
+        </tr>
+        <tr>
+          <td>1,000</td>
+          <td>3.141592653341</td>
+          <td>0.000003</td>
+          <td>2.49e-10</td>
+          <td>100.0000%</td>
+        </tr>
+        <tr>
+          <td>10,000</td>
+          <td>3.141592653590</td>
+          <td>0.000032</td>
+          <td>2.55e-13</td>
+          <td>100.0000%</td>
+        </tr>
+        <tr>
+          <td>100,000</td>
+          <td>3.141592653590</td>
+          <td>0.000293</td>
+          <td>6.66e-15</td>
+          <td>100.0000%</td>
+        </tr>
+        <tr>
+          <td>1,000,000</td>
+          <td>3.141592653590</td>
+          <td>0.002945</td>
+          <td>6.22e-15</td>
+          <td>100.0000%</td>
+        </tr>
+        <tr>
+          <td>10,000,000</td>
+          <td>3.141592653580</td>
+          <td>0.031370</td>
+          <td>9.45e-12</td>
+          <td>100.0000%</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>🏆 Comparação Direta (1,000,000 iterações)</h3>
+
+    <table class="performance-table">
+      <thead>
+        <tr>
+          <th>Método</th>
+          <th>π Aproximado</th>
+          <th>Tempo (s)</th>
+          <th>Erro</th>
+          <th>Diferença de Precisão</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Leibniz</strong></td>
+          <td>3.141591653590</td>
+          <td>0.002805</td>
+          <td>1.00e-06</td>
+          <td>Base</td>
+        </tr>
+        <tr>
+          <td><strong>Nilakantha</strong></td>
+          <td>3.141592653590</td>
+          <td>0.002891</td>
+          <td>6.22e-15</td>
+          <td><strong>160.000x mais precisa</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>🔍 Análise dos Resultados</h3>
 
     <div class="algorithm-box">
-      <h4>1. Convergência:</h4>
+      <h4>📈 Principais Descobertas:</h4>
       <ul>
-        <li><strong>Leibniz:</strong> Convergência O(1/n) - lenta</li>
-        <li><strong>Nilakantha:</strong> Convergência O(1/n³) - rápida</li>
+        <li><strong>Nilakantha é dramaticamente superior:</strong> Com apenas 100 iterações, já atinge erro de 2.43e-07</li>
+        <li><strong>Leibniz precisa de 10 milhões de iterações</strong> para atingir erro similar (1.00e-07)</li>
+        <li><strong>Tempos similares:</strong> Ambos métodos têm performance temporal parecida</li>
+        <li><strong>Precision ceiling:</strong> Limitação da precisão do tipo double em ~10^-15</li>
       </ul>
 
-      <h4>2. Complexidade Temporal:</h4>
+      <h4>⚖️ Trade-offs Observados:</h4>
       <ul>
-        <li>Ambos algoritmos: O(n) onde n = número de iterações</li>
-        <li>Tempo cresce linearmente com iterações</li>
-      </ul>
-
-      <h4>3. Precisão vs Performance:</h4>
-      <ul>
-        <li>Mais iterações = maior precisão</li>
-        <li>Lei dos retornos decrescentes aplicada</li>
-        <li>Trade-off entre tempo e acurácia</li>
+        <li><strong>Simplicidade vs Eficiência:</strong> Leibniz é mais simples, Nilakantha é mais eficiente</li>
+        <li><strong>Iterações vs Precisão:</strong> Nilakantha atinge alta precisão com 100x menos iterações</li>
+        <li><strong>Tempo de desenvolvimento vs Performance:</strong> Nilakantha compensa complexidade adicional</li>
       </ul>
     </div>
 
@@ -525,41 +592,6 @@
       Precisão ∝ log(Recursos Computacionais)
     </div>
 
-    <div class="optimization-box">
-      <h4>Estratégias de Otimização Emergentes:</h4>
-      <ul>
-        <li>
-          <strong>Computação Adaptativa:</strong> Alocar recursos onde precisão
-          é mais crítica
-        </li>
-        <li>
-          <strong>Aproximações Inteligentes:</strong> Modelos substitutos e
-          reduced-order modeling
-        </li>
-        <li>
-          <strong>Hardware Especializado:</strong> TPUs, FPGAs, computação
-          quântica
-        </li>
-      </ul>
-    </div>
-
-    <h2>💻 Compilação e Execução</h2>
-
-    <div class="compilation-box">
-      <h4>Linux/macOS:</h4>
-      <div class="code-example">gcc -o tarefa3 tarefa3.c -lm ./tarefa3</div>
-
-      <h4>Windows (MinGW/MSYS2):</h4>
-      <div class="code-example">
-        gcc -o tarefa3.exe tarefa3.c -lm tarefa3.exe
-      </div>
-
-      <h4>Windows (Visual Studio):</h4>
-      <div class="code-example">cl tarefa3.c /Fe:tarefa3.exe tarefa3.exe</div>
-
-      <h4>Configuração de Encoding (Windows PowerShell):</h4>
-      <div class="code-example">chcp 65001 # Define codificação UTF-8</div>
-    </div>
 
     <h2>🔬 Conceitos de Programação Paralela</h2>
 
@@ -587,34 +619,6 @@
         <li>Tempo vs Precisão</li>
         <li>Memória vs Velocidade</li>
         <li>Algoritmo vs Hardware</li>
-      </ul>
-    </div>
-
-    <h2>🚀 Extensões Possíveis</h2>
-
-    <div class="optimization-box">
-      <h4>1. Implementação Paralela:</h4>
-      <div class="code-example">
-        #include &lt;omp.h&gt; // Paralelizar com OpenMP #pragma omp parallel
-        for reduction(+:pi_approx) for (long long i = 0; i < iterations; i++) {
-        // Cálculo do termo }
-      </div>
-
-      <h4>2. Outros Algoritmos:</h4>
-      <ul>
-        <li>Método de Monte Carlo</li>
-        <li>Série de Machin</li>
-        <li>Algoritmo de Chudnovsky</li>
-        <li>Algoritmo de Bailey–Borwein–Plouffe</li>
-      </ul>
-
-      <h4>3. Análises Avançadas:</h4>
-      <ul>
-        <li>Gráficos de convergência</li>
-        <li>Análise estatística de erro</li>
-        <li>
-          Comparação com diferentes precisões (float, double, long double)
-        </li>
       </ul>
     </div>
 
