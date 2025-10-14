@@ -153,16 +153,100 @@
       sob diferentes níveis de otimização do compilador.
     </p>
 
-    <div class="highlight">
+    <h2>🧠 Fundamentos do Paralelismo ao Nível de Instrução (ILP)</h2>
+
+    <div class="theory-box">
+      <h3>🔍 O que é ILP?</h3>
       <p>
-        <strong>Meta principal:</strong> Compreender como o compilador explora
-        paralelismo interno e como dependências de dados podem limitar ou
-        facilitar essas otimizações, especialmente em operações vetoriais e
-        loops computacionalmente intensivos.
+        O <strong>Instruction-Level Parallelism (ILP)</strong> é uma forma de paralelismo onde múltiplas instruções são executadas simultaneamente dentro de um único processador. Diferentemente do paralelismo explícito (como threads ou processos), o ILP explora o paralelismo implícito no código sequencial, permitindo que o processador execute várias operações ao mesmo tempo, desde que não haja conflitos de dependências.
       </p>
     </div>
 
-    <h2>📚 Teoria</h2>
+    <h3>🏗️ Arquiteturas que Suportam ILP</h3>
+
+    <div class="optimization-box">
+      <h4>📋 Processadores Superescalares</h4>
+      <ul>
+        <li><strong>Múltiplas Unidades Funcionais:</strong> ALUs, FPUs, unidades de load/store independentes</li>
+        <li><strong>Pipeline Profundo:</strong> Divisão da execução de instruções em estágios paralelos</li>
+        <li><strong>Execução Fora de Ordem:</strong> Instruções podem ser executadas em ordem diferente da programada</li>
+        <li><strong>Especulação de Branch:</strong> Predição de desvios para manter o pipeline ocupado</li>
+      </ul>
+
+      <h4>� Processadores VLIW (Very Long Instruction Word)</h4>
+      <ul>
+        <li><strong>Compilador Responsável:</strong> O compilador determina quais instruções podem ser paralelas</li>
+        <li><strong>Instruções Longas:</strong> Cada instrução contém múltiplas operações independentes</li>
+        <li><strong>Sem Hardware Complexo:</strong> Menor complexidade de hardware, maior responsabilidade do compilador</li>
+      </ul>
+    </div>
+
+    <h3>⚡ Tipos de Dependências que Limitam ILP</h3>
+
+    <div class="warning-box">
+      <h4>🔗 Dependências de Dados (Data Dependencies)</h4>
+      
+      <div class="code-example">
+        <strong>RAW (Read After Write) - Verdadeira Dependência:</strong><br>
+        A = B + C  // Instrução 1<br>
+        D = A * 2  // Instrução 2 depende do resultado de 1
+      </div>
+
+      <div class="code-example">
+        <strong>WAR (Write After Read) - Anti-dependência:</strong><br>
+        D = A + B  // Instrução 1 lê A<br>
+        A = C + E  // Instrução 2 escreve em A
+      </div>
+
+      <div class="code-example">
+        <strong>WAW (Write After Write) - Dependência de Saída:</strong><br>
+        A = B + C  // Instrução 1 escreve em A<br>
+        A = D + E  // Instrução 2 também escreve em A
+      </div>
+    </div>
+
+    <h3>🚀 Técnicas para Maximizar ILP</h3>
+
+    <div class="loop-analysis">
+      <h4>🔄 Loop Unrolling (Desenrolamento de Loops)</h4>
+      <div class="code-example">
+        <strong>Antes (Dependência Entre Iterações):</strong><br>
+        for (i = 0; i < N; i++) {<br>
+        &nbsp;&nbsp;sum += array[i];<br>
+        }<br><br>
+
+        <strong>Depois (Múltiplos Acumuladores):</strong><br>
+        for (i = 0; i < N-3; i += 4) {<br>
+        &nbsp;&nbsp;sum1 += array[i];<br>
+        &nbsp;&nbsp;sum2 += array[i+1];<br>
+        &nbsp;&nbsp;sum3 += array[i+2];<br>
+        &nbsp;&nbsp;sum4 += array[i+3];<br>
+        }
+      </div>
+
+      <h4>📊 Vetorização SIMD</h4>
+      <p>
+        <strong>Single Instruction, Multiple Data:</strong> Uma única instrução opera sobre múltiplos elementos de dados simultaneamente. Exemplos incluem instruções SSE, AVX em processadores x86.
+      </p>
+
+      <div class="code-example">
+        <strong>Vetorização Automática pelo Compilador:</strong><br>
+        // Código C original<br>
+        for (i = 0; i < N; i++) {<br>
+        &nbsp;&nbsp;c[i] = a[i] + b[i];<br>
+        }<br><br>
+        
+        // Pode ser otimizado para (conceitualmente):<br>
+        // Processa 4 elementos por vez com instruções SIMD
+      </div>
+
+      <h4>🎯 Instruction Scheduling</h4>
+      <p>
+        O compilador reordena instruções para minimizar stalls do pipeline, colocando instruções independentes entre operações que causam dependências, maximizando o uso das unidades funcionais.
+      </p>
+    </div>
+
+    <h2>�📚 Teoria Aplicada</h2>
 
     <div class="theory-box">
       <p>
@@ -174,47 +258,6 @@
         limitar esse paralelismo.
       </p>
     </div>
-
-    <h3>🔗 Tipos de Dependência</h3>
-
-    <ul>
-      <li>
-        <strong>Dependência de dados (RAW - Read After Write):</strong> Uma
-        instrução precisa do resultado de outra anterior
-      </li>
-      <li>
-        <strong>Dependência anti (WAR - Write After Read):</strong> Uma
-        instrução escreve em um local que será lido por outra
-      </li>
-      <li>
-        <strong>Dependência de saída (WAW - Write After Write):</strong> Duas
-        instruções escrevem no mesmo local
-      </li>
-    </ul>
-
-    <h3>🛠️ Técnicas de Otimização do Compilador</h3>
-
-    <div class="optimization-box">
-      <ul>
-        <li>
-          <strong>Vetorização SIMD:</strong> Uso de instruções que processam
-          múltiplos dados simultaneamente
-        </li>
-        <li>
-          <strong>Loop Unrolling:</strong> Desenrolar loops para reduzir
-          overhead de controle
-        </li>
-        <li>
-          <strong>Instruction Scheduling:</strong> Reordenação de instruções
-          para maximizar paralelismo
-        </li>
-        <li>
-          <strong>Register Allocation:</strong> Otimização do uso de
-          registradores
-        </li>
-      </ul>
-    </div>
-
     <h2>🧪 Experimentos Implementados</h2>
 
     <p>
@@ -314,71 +357,6 @@
 
     <div class="page-break"></div>
 
-    <h2>🔬 Procedimento Experimental</h2>
-
-    <ol>
-      <li>
-        <strong>Implementar os três loops em C</strong> conforme descrito acima
-      </li>
-      <li>
-        <strong
-          >Compilar o programa com diferentes níveis de otimização:</strong
-        >
-        <ul>
-          <li><code>-O0</code>: Sem otimizações (baseline)</li>
-          <li><code>-O2</code>: Otimizações moderadas</li>
-          <li>
-            <code>-O3</code>: Otimizações agressivas, incluindo vetorização e
-            paralelismo
-          </li>
-        </ul>
-      </li>
-      <li>
-        <strong>Medir e comparar os tempos de execução</strong> de cada loop em
-        cada nível de otimização
-      </li>
-      <li>
-        <strong>Analisar os resultados</strong> e identificar padrões de
-        performance
-      </li>
-    </ol>
-
-    <h2>📊 Análise de Resultados Esperados</h2>
-
-    <table class="performance-table">
-      <thead>
-        <tr>
-          <th>Loop</th>
-          <th>-O0 (Baseline)</th>
-          <th>-O2 (Moderado)</th>
-          <th>-O3 (Agressivo)</th>
-          <th>Speedup Esperado</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>1. Inicialização</strong></td>
-          <td>Lento</td>
-          <td>Rápido</td>
-          <td>Muito Rápido</td>
-          <td>Alto (5-10x)</td>
-        </tr>
-        <tr>
-          <td><strong>2. Soma Simples</strong></td>
-          <td>Lento</td>
-          <td>Médio</td>
-          <td>Rápido</td>
-          <td>Moderado (2-4x)</td>
-        </tr>
-        <tr>
-          <td><strong>3. Soma Múltipla</strong></td>
-          <td>Lento</td>
-          <td>Rápido</td>
-          <td>Muito Rápido</td>
-          <td>Muito Alto (8-15x)</td>
-        </tr>
-      </tbody>
-    </table>
 
     <h3>📈 Padrões de Performance</h3>
 
@@ -406,63 +384,82 @@
       </p>
     </div>
 
-    <h2>🧠 Conceitos Fundamentais Demonstrados</h2>
+    <h3>🔢 Dados de Performance Coletados</h3>
 
-    <div class="theory-box">
-      <h3>1. 🔄 Dependência de Dados vs. Paralelismo</h3>
-      <p>
-        A diferença entre os loops 2 e 3 ilustra perfeitamente como dependências
-        de dados podem ser gargalo para performance, e como técnicas simples
-        (múltiplos acumuladores) podem quebrar essas dependências.
-      </p>
+    <table class="performance-table">
+      <thead>
+        <tr>
+          <th>Operação</th>
+          <th>-O0 (Sem otimização)</th>
+          <th>-O2 (Otimização moderada)</th>
+          <th>-O3 (Otimização agressiva)</th>
+          <th>Speedup (O0→O3)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Inicialização simples</strong></td>
+          <td>0.485s</td>
+          <td>0.329s</td>
+          <td>0.294s</td>
+          <td><strong>1.65x</strong></td>
+        </tr>
+        <tr>
+          <td><strong>2. Soma acumulativa</strong></td>
+          <td>0.318s</td>
+          <td>0.152s</td>
+          <td>0.157s</td>
+          <td><strong>2.02x</strong></td>
+        </tr>
+        <tr>
+          <td><strong>3. Soma múltiplos acumuladores</strong></td>
+          <td>0.148s</td>
+          <td>0.088s</td>
+          <td>0.078s</td>
+          <td><strong>1.90x</strong></td>
+        </tr>
+      </tbody>
+    </table>
 
-      <h3>2. 🚀 Poder das Otimizações do Compilador</h3>
-      <p>
-        A comparação entre -O0, -O2 e -O3 demonstra o impacto dramático das
-        otimizações automáticas do compilador, especialmente vetorização SIMD e
-        loop unrolling.
-      </p>
+    <h3>🔍 Análise dos Resultados</h3>
 
-      <h3>3. ⚖️ Trade-offs de Design</h3>
-      <p>
-        O loop 3 mostra como pequenas mudanças no código (usar 4 variáveis em
-        vez de 1) podem ter impacto dramático na performance, ilustrando a
-        importância de escrever código "amigável ao compilador".
-      </p>
+    <div class="loop-analysis">
+      <h4>🎯 Observações Principais:</h4>
+      
+      <div class="optimization-box">
+        <p><strong>1. Impacto da Quebra de Dependências:</strong></p>
+        <ul>
+          <li>A soma com múltiplos acumuladores é consistentemente <strong>2x mais rápida</strong> que a soma sequencial</li>
+          <li>Mesmo sem otimização (-O0), a técnica já demonstra benefícios (0.148s vs 0.318s)</li>
+          <li>Com otimização (-O3), a diferença se mantém significativa (0.078s vs 0.157s)</li>
+        </ul>
+      </div>
 
-      <h3>4. 🏗️ Arquitetura de Processadores Modernos</h3>
-      <p>
-        Os resultados refletem características de CPUs modernas: múltiplas
-        unidades funcionais, pipelines superescalares, e instruções SIMD (SSE,
-        AVX).
-      </p>
+      <div class="theory-box">
+        <p><strong>2. Comportamento das Otimizações:</strong></p>
+        <ul>
+          <li><strong>Inicialização:</strong> Melhoria constante de O0 para O3 (1.65x speedup)</li>
+          <li><strong>Soma sequencial:</strong> Interessante comportamento onde O2 foi ligeiramente mais rápido que O3 (0.152s vs 0.157s)</li>
+          <li><strong>Soma paralela:</strong> Melhor resposta às otimizações (1.90x speedup), confirmando que código sem dependências se beneficia mais</li>
+        </ul>
+      </div>
     </div>
 
-    <h2>💡 Lições Práticas</h2>
+    
+    <h3>💡 Conclusões dos Experimentos</h3>
 
     <div class="highlight">
+      <p><strong>Principais Lições Aprendidas:</strong></p>
       <ul>
-        <li>
-          <strong>Evite dependências desnecessárias:</strong> Use múltiplos
-          acumuladores quando possível
-        </li>
-        <li>
-          <strong>Confie no compilador:</strong> Otimizações modernas são muito
-          eficazes quando o código permite
-        </li>
-        <li>
-          <strong>Profile antes de otimizar:</strong> Meça o impacto real das
-          diferentes abordagens
-        </li>
-        <li>
-          <strong>Entenda sua arquitetura:</strong> Diferentes CPUs podem
-          apresentar resultados distintos
-        </li>
-        <li>
-          <strong>Loop unrolling:</strong> Pode ser benéfico mesmo quando feito
-          manualmente
-        </li>
+        <li><strong>Quebra de dependências é fundamental:</strong> O uso de múltiplos acumuladores proporcionou ganhos consistentes de 1.73x a 2.15x</li>
+        <li><strong>Otimizações do compilador são poderosas:</strong> Speedups de até 2.02x apenas mudando flags de compilação</li>
+        <li><strong>ILP tem impacto real:</strong> Mesmo técnicas simples como múltiplos acumuladores podem dobrar a performance</li>
+        <li><strong>Design de código importa:</strong> Pequenas mudanças na estrutura do algoritmo têm impacto dramático na performance</li>
       </ul>
+    </div>
+
+    <div style="text-align: center; margin: 40px 0;">
+      <img src="tarefa2.png" alt="Tarefa 2 Results" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
     </div>
 
     <div class="footer">
