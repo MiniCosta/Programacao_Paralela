@@ -121,19 +121,12 @@
       <strong>"Von Neumann Bottleneck"</strong>.
     </p>
 
-    <div class="analogy">
-      <h3>🎓 Analogia: O Estudante e a Biblioteca</h3>
-      <p>
-        Imagine a CPU como um estudante muito ávido por conhecimento (dados) e a
-        RAM como uma enorme biblioteca central. Ir até a biblioteca para buscar
-        cada livro individualmente é um processo lento. A cache age como uma
-        <strong
-          >pequena estante de livros diretamente na mesa do estudante</strong
-        >, contendo os volumes que ele mais usa ou usará em breve. Buscar um
-        livro dessa estante (cache) é quase instantâneo, enquanto uma viagem à
-        biblioteca (RAM) consome um tempo precioso.
-      </p>
-    </div>
+    <p>
+      A latência de acesso à memória cache L1 é tipicamente de 1-4 ciclos de clock,
+      enquanto o acesso à RAM pode requerer 200-400 ciclos. Esta diferença substancial
+      justifica a implementação de múltiplos níveis de cache para otimizar o desempenho
+      do sistema através da redução do número médio de acessos à memória principal.
+    </p>
 
     <p>
       A hierarquia de memória é organizada em níveis (L1, L2, L3), com a L1
@@ -146,35 +139,27 @@
 
     <h2>Localidade Espacial e Temporal</h2>
 
-    <h3>🔄 Localidade Temporal: A Força do Hábito</h3>
+    <h3>Localidade Temporal</h3>
 
     <p>
-      A localidade temporal é o princípio que rege a reutilização de dados. Ele
-      se baseia na premissa simples e poderosa de que
-      <strong
-        >se um dado foi acessado recentemente, é muito provável que ele seja
-        acessado novamente em um futuro próximo</strong
-      >.
+      A localidade temporal é um princípio fundamental que estabelece que
+      <strong>dados acessados recentemente têm alta probabilidade de serem acessados 
+      novamente em um intervalo de tempo próximo</strong>. Este comportamento é 
+      explorado pelos algoritmos de substituição de cache, como LRU (Least Recently Used).
     </p>
 
-    <div class="analogy">
-      <p>
-        Voltando à analogia do estudante: se ele está lendo um capítulo
-        específico de um livro de cálculo, é altamente provável que ele precise
-        consultar aquele mesmo capítulo novamente para resolver os exercícios ou
-        revisar um conceito. Seria extremamente ineficiente devolver o livro à
-        biblioteca e depois ter que buscá-lo novamente minutos depois. Portanto,
-        faz todo sentido mantê-lo em sua estante pessoal (a cache) durante todo
-        o período de estudo.
-      </p>
-    </div>
+    <p>
+      Este princípio se manifesta principalmente em estruturas de controle como loops,
+      onde variáveis de iteração, condições de parada e dados processados repetidamente
+      são mantidos na cache. A eficácia da localidade temporal é quantificada pela
+      taxa de cache hits em acessos subsequentes ao mesmo endereço de memória.
+    </p>
 
     <p>
-      Na computação, isso se manifesta em <strong>loops</strong>. Por exemplo, a
-      variável que controla um loop (i) é acessada, incrementada e comparada em
-      toda iteração. Graças à localidade temporal, após seu primeiro acesso, ela
-      permanece na cache L1, tornando os acessos subsequentes ordens de
-      magnitude mais rápidos.
+      Algoritmos que processam os mesmos dados múltiplas vezes (como operações em
+      matrizes densas) beneficiam-se significativamente da localidade temporal,
+      especialmente quando o working set de dados cabe nos níveis superiores da
+      hierarquia de cache.
     </p>
 
     <div class="highlight">
@@ -188,57 +173,29 @@
       </p>
     </div>
 
-    <h3>📍 Localidade Espacial: Aproveitando a Vizinhança</h3>
+    <h3>Localidade Espacial</h3>
 
     <p>
-      A localidade espacial é o princípio que explora a proximidade física dos
-      dados na memória. Ele se baseia na observação de que,
-      <strong
-        >após acessar um endereço de memória, é muito provável que o programa em
-        breve precise acessar endereços adjacentes a ele</strong
-      >.
+      A localidade espacial é um princípio que explora a proximidade física dos
+      dados na memória. Este princípio estabelece que
+      <strong>após acessar um endereço de memória, existe alta probabilidade 
+      de acessos subsequentes a endereços adjacentes</strong>.
     </p>
-
-    <div class="analogy">
-      <p>
-        Imagine que nosso estudante precise do livro "Cálculo Vol. 1". A
-        localidade espacial sugere que ele também pode precisar do "Cálculo Vol.
-        2", que provavelmente está na prateleira ao lado na biblioteca. Um
-        sistema eficiente não traria apenas o livro solicitado, mas também
-        alguns dos livros vizinhos, antecipando necessidades futuras. Dessa
-        forma, se o estudante de fato precisar do volume 2, ele já estará em sua
-        estante, poupando outra viagem.
-      </p>
-    </div>
 
     <p>
-      Na prática, isso é exatamente o que acontece. A memória e a cache são
-      organizadas em <strong>linhas de cache</strong> (blocos de dados,
-      tipicamente de 64 bytes). Quando um programa acessa um único byte, a linha
-      de cache inteira que contém esse byte é trazida da RAM para a cache. Se o
-      programa subsequentemente acessar os bytes vizinhos (o que é extremamente
-      comum ao percorrer um array ou uma matriz linha por linha), esses dados já
-      estarão disponíveis na cache, resultando em um cache hit.
+      A implementação prática deste princípio baseia-se na organização da memória
+      e cache em <strong>linhas de cache</strong> (cache lines), blocos contíguos
+      de dados tipicamente de 64 bytes em arquiteturas x86-64. Quando ocorre um
+      cache miss, toda a linha de cache contendo o endereço solicitado é transferida
+      da memória principal para a cache, não apenas o byte individual.
     </p>
 
-    <div class="performance-box">
-      <h3>⚡ Impacto na Performance</h3>
-      <p>
-        O acesso a matrizes é o exemplo clássico. Percorrer uma matriz na ordem
-        em que ela está armazenada na memória (em C, row-major - linha por
-        linha) aproveita magnificamente a localidade espacial. Cada acesso à
-        memória carrega um bloco de elementos adjacentes, que são imediatamente
-        utilizados nas iterações seguintes do loop.
-      </p>
-
-      <p>
-        Por outro lado, percorrer uma matriz coluna por linha em uma linguagem
-        row-major como C viola completamente a localidade espacial. Cada acesso
-        salta para um local distante na memória, muito provavelmente em uma
-        linha de cache diferente, resultando em uma enxurrada de cache misses e
-        uma <strong>penalidade de desempenho catastrófica</strong>.
-      </p>
-    </div>
+    <p>
+      Esta estratégia é altamente eficaz para padrões de acesso sequencial,
+      como iteração sobre arrays, onde elementos adjacentes na memória são
+      acessados consecutivamente. O resultado é uma alta taxa de cache hits
+      para acessos subsequentes dentro da mesma linha de cache.
+    </p>
 
     <div class="page-break"></div>
 
@@ -259,25 +216,21 @@
       o aproveitamento da cache e tornando o acesso mais lento.
     </p>
 
-    <h3>🏠 Analogia: Endereços de Casas Consecutivos</h3>
+    <h3>Layout de Memória em Row-Major</h3>
 
-    <div class="analogy">
-      <p>
-        Pense em uma matriz armazenada na memória como uma sequência de casas
-        com endereços consecutivos. No <strong>row major</strong>, os elementos
-        de uma linha estão em endereços físicos consecutivos (por exemplo, 100,
-        101, 102, ...). Assim, ao percorrer uma linha, você acessa endereços
-        próximos, aproveitando a localidade espacial e a cache.
-      </p>
+    <p>
+      Em sistemas row-major, uma matriz bidimensional A[m][n] é mapeada linearmente
+      na memória onde o elemento A[i][j] está localizado no endereço:
+      <strong>base_address + (i × n + j) × sizeof(element)</strong>
+    </p>
 
-      <p>
-        No <strong>column major</strong>, os elementos de uma coluna estariam em
-        endereços consecutivos. Se você tentar acessar uma coluna em C (row
-        major), precisará saltar entre endereços distantes (por exemplo, 100,
-        110, 120, ...), o que reduz a eficiência do cache, pois os dados não
-        estão fisicamente próximos na memória.
-      </p>
-    </div>
+    <p>
+      Esta organização implica que elementos consecutivos de uma linha (j, j+1, j+2...)
+      estão em endereços de memória adjacentes, maximizando a eficiência da cache
+      para acessos sequenciais por linha. Conversamente, elementos de uma coluna
+      (A[i][j], A[i+1][j], A[i+2][j]...) estão separados por um stride de n×sizeof(element)
+      bytes, potencialmente causando cache miss em cada acesso.
+    </p>
 
     <div class="code-example">
       <strong>Exemplo em C (Row Major):</strong><br />
@@ -299,40 +252,199 @@
       matriz[i][j]); // Saltos na memória
     </div>
 
+    <div class="performance-box">
+      <h3>Métricas de Performance</h3>
+      <ul>
+        <li>
+          <strong>Row-major access:</strong> Taxa de cache miss ≈ 1/(elementos_por_cache_line)
+        </li>
+        <li>
+          <strong>Column-major access:</strong> Taxa de cache miss ≈ 100% para matrizes grandes
+        </li>
+        <li>
+          <strong>Bandwidth utilization:</strong> Row-major utiliza ~100% da bandwidth de memória, column-major ~1-10%
+        </li>
+        <li>
+          <strong>Latência efetiva:</strong> Diferença pode alcançar 2-3 ordens de magnitude
+        </li>
+      </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>Resultados Experimentais</h2>
+
+    <p>
+      Os resultados a seguir foram obtidos através da execução do programa de teste de multiplicação 
+      matriz-vetor, comparando o desempenho entre acesso por linhas (row-major) e acesso por colunas 
+      (column-major) em diferentes tamanhos de matriz.
+    </p>
+
+    <div class="code-example">
+      <h3>Resultados dos Testes de Performance</h3>
+      <pre>
+=====================================================
+           TESTE COM MATRIZ 200x200
+=====================================================
+Acesso por linhas   | 0.000194 s
+Acesso por colunas  | 0.000194 s
+Performance: colunas 1.00x (equivalente)
+
+=====================================================
+           TESTE COM MATRIZ 400x400
+=====================================================
+Acesso por linhas   | 0.000581 s
+Acesso por colunas  | 0.000811 s
+Performance: linhas 1.39x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 600x600
+=====================================================
+Acesso por linhas   | 0.001395 s
+Acesso por colunas  | 0.002440 s
+Performance: linhas 1.75x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 800x800
+=====================================================
+Acesso por linhas   | 0.003347 s
+Acesso por colunas  | 0.004035 s
+Performance: linhas 1.21x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 1000x1000
+=====================================================
+Acesso por linhas   | 0.004375 s
+Acesso por colunas  | 0.007084 s
+Performance: linhas 1.62x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 1500x1500
+=====================================================
+Acesso por linhas   | 0.009737 s
+Acesso por colunas  | 0.017701 s
+Performance: linhas 1.82x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 2000x2000
+=====================================================
+Acesso por linhas   | 0.014221 s
+Acesso por colunas  | 0.035507 s
+Performance: linhas 2.50x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 2500x2500
+=====================================================
+Acesso por linhas   | 0.022652 s
+Acesso por colunas  | 0.060502 s
+Performance: linhas 2.67x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 3000x3000
+=====================================================
+Acesso por linhas   | 0.031533 s
+Acesso por colunas  | 0.088898 s
+Performance: linhas 2.82x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 3500x3500
+=====================================================
+Acesso por linhas   | 0.043085 s
+Acesso por colunas  | 0.128384 s
+Performance: linhas 2.98x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 4000x4000
+=====================================================
+Acesso por linhas   | 0.055976 s
+Acesso por colunas  | 0.182275 s
+Performance: linhas 3.26x mais rápido
+
+=====================================================
+           TESTE COM MATRIZ 5000x5000
+=====================================================
+Acesso por linhas   | 0.087609 s
+Acesso por colunas  | 0.282290 s
+Performance: linhas 3.22x mais rápido
+      </pre>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>Análise da Divergência Crítica de Performance</h2>
+
     <div class="highlight">
-      <h3>🎯 Conclusão Principal</h3>
+      <h3>Identificação do Ponto de Divergência Significativa</h3>
       <p>
-        Em ordenação por colunas (column major), os elementos de uma mesma
-        coluna estão armazenados em endereços de memória consecutivos. Já em C,
-        que utiliza ordenação por linhas (row major), os elementos de uma mesma
-        linha ficam juntos na memória. Por isso, ao acessar uma coluna em C, o
-        programa precisa pular entre endereços de memória distantes. Isso
-        diminui drasticamente a eficiência do cache, pois os dados acessados não
-        estão próximos fisicamente na memória, tornando o acesso
-        significativamente mais lento.
+        A análise detalhada dos resultados experimentais revela que <strong>2000×2000 (32 MB de working set)</strong> 
+        representa o ponto crítico onde os tempos de execução passam a divergir significativamente entre os dois 
+        padrões de acesso à memória. Este ponto marca uma transição fundamental no comportamento de performance.
+      </p>
+      
+      <p>
+        Observa-se um <strong>salto abrupto de 1.82x para 2.50x</strong> entre as matrizes 1500×1500 e 2000×2000, 
+        indicando uma mudança qualitativa no regime de operação do sistema de memória.
       </p>
     </div>
 
     <div class="performance-box">
-      <h3>📊 Impacto Prático</h3>
-      <p>A diferença de performance pode ser dramática:</p>
+      <h3>Análise por Fases de Comportamento</h3>
+      
+      <h4>Fase 1: Matrizes Pequenas e Médias (≤ 1500×1500, ≤ 18 MB)</h4>
       <ul>
-        <li>
-          <strong>Row-major em C:</strong> Alta taxa de cache hits, acesso
-          rápido
-        </li>
-        <li>
-          <strong>Column-major em C:</strong> Alta taxa de cache misses, pode
-          ser 10x-100x mais lento
-        </li>
-        <li>
-          <strong>Tamanho da matriz:</strong> Quanto maior a matriz, maior a
-          diferença
-        </li>
-        <li>
-          <strong>Algoritmos:</strong> Multiplicação de matrizes, operações
-          lineares são drasticamente afetadas
-        </li>
+        <li><strong>Working Set:</strong> 320 KB - 18 MB (cabe parcial/totalmente na cache L3)</li>
+        <li><strong>Speedup:</strong> 1.00x - 1.82x (inconsistente e moderado)</li>
+        <li><strong>Característica:</strong> Competição por recursos de cache entre padrões</li>
+        <li><strong>Comportamento:</strong> Diferenças mascaradas por cache hits ocasionais em ambos os padrões</li>
+      </ul>
+
+      <h4>Fase 2: Matrizes Grandes (≥ 2000×2000, ≥ 32 MB)</h4>
+      <ul>
+        <li><strong>Working Set:</strong> ≥ 32 MB (excede completamente cache L3 típica)</li>
+        <li><strong>Speedup:</strong> 2.50x - 3.26x (alto e consistente)</li>
+        <li><strong>Característica:</strong> Exposição completa da diferença fundamental entre padrões</li>
+        <li><strong>Comportamento:</strong> Column-major causa cache thrashing, row-major mantém eficiência</li>
+      </ul>
+    </div>
+
+    <div class="code-example">
+      <h3>Análise Técnica da Causa da Divergência</h3>
+      <pre>
+<strong>Cálculo do Working Set Crítico:</strong>
+Para matriz N×N com elementos double (8 bytes):
+• 1500×1500: 1500² × 8 = 18 MB (ainda cabe parcialmente na L3)
+• 2000×2000: 2000² × 8 = 32 MB ← <strong>Ponto crítico</strong>
+• 5000×5000: 5000² × 8 = 200 MB (muito superior à L3)
+
+<strong>Cache L3 Típica:</strong> 16-32 MB
+<strong>Cache Line:</strong> 64 bytes (8 elementos double)
+
+<strong>Padrões de Stride:</strong>
+• Row-major: 8 bytes (acesso sequencial)
+• Column-major (N=2000): 2000 × 8 = 16,000 bytes
+  → 250x maior que cache line (64 bytes)
+
+<strong>Miss Rate Estimado para Working Set > L3:</strong>
+• Row-major: ~12.5% (1 miss a cada 8 acessos)
+• Column-major: ~100% (miss em praticamente cada acesso)
+
+<strong>Diferença de Latência:</strong>
+• Cache L1/L2: ~4 ciclos de clock
+• RAM: ~300 ciclos de clock
+• Ratio teórico: 300/4 = 75x
+• Ratio observado: ~3.2x (limitado por prefetching e paralelismo)
+      </pre>
+    </div>
+
+    <div class="highlight">
+      <h3>Explicação do Fenômeno de Divergência</h3>
+      <p>A divergência significativa a partir de <strong>2000×2000</strong> ocorre devido a múltiplos fatores convergentes:</p>
+      <ul>
+        <li><strong>Excesso do Threshold de Cache L3:</strong> Working set de 32 MB excede capacidade típica da cache L3 (16-32 MB)</li>
+        <li><strong>Cache Thrashing Completo:</strong> Column-major passa a causar cache miss em ~100% dos acessos</li>
+        <li><strong>Manutenção da Eficiência Row-Major:</strong> Acesso sequencial continua aproveitando cache lines completas</li>
+        <li><strong>Saturação de Bandwidth:</strong> Column-major satura bus de memória com transferências ineficientes</li>
+        <li><strong>Dominância da Latência:</strong> Diferença entre cache (~4 ciclos) e RAM (~300 ciclos) se torna fator determinante</li>
       </ul>
     </div>
 
