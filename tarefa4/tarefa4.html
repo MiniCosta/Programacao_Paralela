@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefa 4 - Programação Paralela com OpenMP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #2980b9;
+            margin-top: 25px;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .memory-bound {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .cpu-bound {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .analysis-box {
+            background-color: #e8f5e8;
+            border: 1px solid #28a745;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .performance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .performance-table th, .performance-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .performance-table th {
+            background-color: #3498db;
+            color: white;
+        }
+        .performance-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tarefa 4 – Programação Paralela com OpenMP</h1>
+        
+        <p>Este projeto apresenta dois exemplos de paralelização em C usando OpenMP:</p>
+        <ul>
+            <li>Um programa limitado por memória (memory-bound), que realiza somas simples em vetores.</li>
+            <li>Um programa limitado por CPU (compute-bound), que executa cálculos matemáticos intensivos.</li>
+        </ul>
+
+        <h2>Código Implementado</h2>
+        
+        <div class="memory-bound">
+            <h3>Função memoria_limitada (Memory-bound)</h3>
+            <p>Soma dois vetores grandes com 100 milhões de elementos, limitada pela largura de banda da memória.</p>
+            <div class="code-block">
+                <pre>#pragma omp parallel for
+for (int i = 0; i < n; i++) {
+    // Soma simples, limitada pela largura de banda da memória
+    c[i] = a[i] + b[i];
+}</pre>
+            </div>
+        </div>
+
+        <div class="cpu-bound">
+            <h3>Função cpu_limitada (Compute-bound)</h3>
+            <p>Executa 20 milhões de operações matemáticas intensivas, limitada pela capacidade de processamento.</p>
+            <div class="code-block">
+                <pre>#pragma omp parallel for
+for (long i = 1; i <= n; i++) {
+    // Operações matemáticas intensivas para cada elemento
+    double temp = sin(i) * log(i + 1) / (cos(i) + 2.0);
+}</pre>
+            </div>
+        </div>
+
+        <p><strong>Configuração:</strong> O número de threads pode ser definido via argumento de linha de comando ou variável de ambiente. O programa mede e exibe os tempos de execução de forma minimalista.</p>
+
+        <h2>Análise de Desempenho</h2>
+
+        <table class="performance-table">
+            <thead>
+                <tr>
+                    <th>Cenário</th>
+                    <th>Comportamento</th>
+                    <th>Explicação</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Desempenho melhora</strong></td>
+                    <td>Aumento linear inicial</td>
+                    <td>O desempenho aumenta ao adicionar threads até atingir o limite do hardware (núcleos físicos ou largura de banda da memória)</td>
+                </tr>
+                <tr>
+                    <td><strong>Desempenho estabiliza</strong></td>
+                    <td>Plateau</td>
+                    <td>Quando todos os recursos estão ocupados (CPU ou memória), adicionar mais threads não traz ganhos</td>
+                </tr>
+                <tr>
+                    <td><strong>Desempenho piora</strong></td>
+                    <td>Degradação</td>
+                    <td>Se o número de threads excede a capacidade do hardware, há competição por recursos, causando overhead</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Gargalo de von Neumann e Tipos de Programas</h2>
+
+        <p>O "gargalo de von Neumann" refere-se à limitação arquitetural onde o desempenho do sistema é restringido pela velocidade de transferência de dados entre a memória e a CPU. Esta limitação foi identificada por John von Neumann e representa um dos principais desafios da computação moderna.</p>
+        
+        <h3>Características dos Diferentes Tipos de Programas:</h3>
+        
+        <div class="memory-bound">
+            <h4>Programas Memory-bound (Limitados por Memória)</h4>
+            <ul>
+                <li><strong>Definição:</strong> Programas cujo desempenho é limitado pela largura de banda da memória</li>
+                <li><strong>Características:</strong> Muitas operações de leitura/escrita, operações aritméticas simples</li>
+                <li><strong>Exemplo prático:</strong> Soma de vetores - requer carregar dois arrays da memória, somar e armazenar o resultado</li>
+                <li><strong>Gargalo:</strong> Tempo gasto esperando dados da memória é maior que o tempo de processamento</li>
+                <li><strong>Padrão típico:</strong> Baixa razão flops/byte (poucas operações por byte transferido)</li>
+            </ul>
+        </div>
+
+        <div class="cpu-bound">
+            <h4>Programas Compute-bound (Limitados por CPU)</h4>
+            <ul>
+                <li><strong>Definição:</strong> Programas cujo desempenho é limitado pela capacidade de processamento da CPU</li>
+                <li><strong>Características:</strong> Muitos cálculos por dado carregado, operações matemáticas complexas</li>
+                <li><strong>Exemplo prático:</strong> Cálculos trigonométricos - poucas transferências de memória, muitas operações por iteração</li>
+                <li><strong>Gargalo:</strong> Unidades de execução (ALU, FPU) são o fator limitante</li>
+                <li><strong>Padrão típico:</strong> Alta razão flops/byte (muitas operações por byte transferido)</li>
+            </ul>
+        </div>
+
+        <div class="highlight">
+            <h4>Identificando o Tipo do Programa:</h4>
+            <p><strong>Teste prático:</strong> Se aumentar a frequência da CPU melhora significativamente o desempenho, provavelmente é compute-bound. Se aumentar a largura de banda da memória tem maior impacto, é memory-bound.</p>
+        </div>
+
+        <h2>Multithreading de Hardware: Quando Ajuda e Quando Atrapalha</h2>
+
+        <p>O multithreading de hardware (como Hyper-Threading) permite que núcleos executem múltiplos threads alternadamente:</p>
+
+        <div class="analysis-box">
+            <h3>Memory-bound: AJUDA ✅</h3>
+            <p><strong>O multithreading de hardware é especialmente benéfico para programas memory-bound pelas seguintes razões técnicas:</strong></p>
+            
+            <h4>1. Mascaramento de Latência de Memória:</h4>
+            <ul>
+                <li><strong>Cache Miss Timing:</strong> Um cache miss na RAM pode levar 100-300 ciclos de CPU. Durante esse tempo, o núcleo ficaria completamente ocioso em single-threading</li>
+                <li><strong>Thread Switching:</strong> Quando Thread A sofre cache miss, o hardware automaticamente alterna para Thread B, que pode executar instruções úteis durante a espera</li>
+                <li><strong>Aproveitamento de Ciclos:</strong> Em vez de desperdiçar centenas de ciclos esperando, o processador mantém utilização próxima a 100%</li>
+            </ul>
+            
+            <h4>2. Melhor Utilização da Largura de Banda:</h4>
+            <ul>
+                <li><strong>Múltiplas Requisições:</strong> Diferentes threads podem fazer requisições simultâneas para diferentes bancos de memória</li>
+                <li><strong>Pipeline de Memória:</strong> Enquanto Thread A recebe dados, Thread B já pode estar solicitando os próximos</li>
+                <li><strong>Saturação dos Canais:</strong> Sistemas multi-channel se beneficiam de requisições paralelas de threads diferentes</li>
+            </ul>
+            
+            <h4>3. Eficiência do Pipeline de CPU:</h4>
+            <ul>
+                <li><strong>Stall Prevention:</strong> Evita que o pipeline da CPU seja completamente limpo durante stalls de memória</li>
+                <li><strong>Instruction Level Parallelism:</strong> Threads diferentes têm padrões de dependência distintos, permitindo melhor paralelismo de instruções</li>
+                <li><strong>Branch Prediction:</strong> Threads alternados reduzem a pressão sobre o preditor de saltos</li>
+            </ul>
+            
+            <h4>4. Exemplo Prático de Memory-bound:</h4>
+            <div class="memory-bound">
+                <p><strong>Cenário:</strong> Soma de vetores grandes (nosso exemplo)</p>
+                <p><strong>Single-thread:</strong> Carrega A[i] → espera 200 ciclos → carrega B[i] → espera 200 ciclos → soma → armazena C[i]</p>
+                <p><strong>Multi-thread:</strong> Thread 1 carrega A[i] → Thread 2 executa durante espera → Thread 1 retorna → processo continua sem interrupção</p>
+                <p><strong>Resultado:</strong> Latência total reduzida de ~400 ciclos para ~50 ciclos efetivos</p>
+            </div>
+            
+            <h3>Compute-bound: ATRAPALHA ❌</h3>
+            <p><strong>O multithreading de hardware pode prejudicar programas compute-bound por várias razões técnicas:</strong></p>
+            
+            <h4>1. Competição por Recursos Limitados:</h4>
+            <ul>
+                <li><strong>Unidades de Execução:</strong> Cada núcleo tem um número limitado de ALUs (Arithmetic Logic Units) e FPUs (Floating Point Units). Com 2 threads por núcleo, cada thread tem acesso a apenas ~50% desses recursos</li>
+                <li><strong>Pipeline de Instruções:</strong> O pipeline do processador deve alternar entre threads, criando bolhas (vazios) que reduzem a eficiência</li>
+                <li><strong>Registradores:</strong> O pool de registradores físicos é dividido entre os threads, limitando a capacidade de otimização do compilador</li>
+            </ul>
+            
+            <h4>2. Contenção de Cache:</h4>
+            <ul>
+                <li><strong>Cache L1:</strong> Compartilhado entre threads do mesmo núcleo, causando mais misses</li>
+                <li><strong>TLB (Translation Lookaside Buffer):</strong> Competição pelo cache de tradução de endereços</li>
+                <li><strong>Branch Predictor:</strong> Preditor de saltos confuso por padrões de múltiplos threads</li>
+            </ul>
+            
+            <h4>3. Overhead de Context Switching:</h4>
+            <ul>
+                <li><strong>Mudanças de contexto:</strong> CPU gasta ciclos alternando entre threads</li>
+                <li><strong>Invalidação de caches:</strong> Dados de um thread podem "expulsar" dados úteis do outro</li>
+                <li><strong>Perda de localidade:</strong> Threads diferentes acessam regiões de memória distintas</li>
+            </ul>
+            
+            <div class="highlight">
+                <p><strong>Exemplo prático:</strong> Um núcleo com 4 FPUs executando 1 thread pode processar 4 operações matemáticas por ciclo. Com 2 threads (hyperthreading), cada thread compete pelos mesmos recursos, resultando em ~2.5 operações por ciclo no total (não 8), com overhead adicional.</p>
+            </div>
+        </div>
+
+        <h2>Resultados Experimentais</h2>
+
+        <p>Os testes foram executados em uma máquina com processador multi-core, variando o número de threads para observar o comportamento dos algoritmos:</p>
+
+        <table class="performance-table">
+            <thead>
+                <tr>
+                    <th>Threads</th>
+                    <th>Memory-bound (s)</th>
+                    <th>Speedup Memory</th>
+                    <th>Compute-bound (s)</th>
+                    <th>Speedup Compute</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>1</strong></td>
+                    <td>0.713</td>
+                    <td>1.00x (baseline)</td>
+                    <td>0.742</td>
+                    <td>1.00x (baseline)</td>
+                </tr>
+                <tr style="background-color: #e8f5e8;">
+                    <td><strong>2</strong></td>
+                    <td>0.385</td>
+                    <td>1.85x</td>
+                    <td>0.366</td>
+                    <td>2.03x</td>
+                </tr>
+                <tr style="background-color: #e8f5e8;">
+                    <td><strong>4</strong></td>
+                    <td>0.336</td>
+                    <td>2.12x</td>
+                    <td>0.227</td>
+                    <td>3.27x</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="analysis-box">
+            <h3>Observações dos Resultados:</h3>
+            <ul>
+                <li><strong>Ambos os algoritmos se beneficiaram da paralelização</strong> até 4 threads</li>
+                <li><strong>Compute-bound teve maior speedup</strong> (3.27x vs 2.12x), indicando melhor escalabilidade</li>
+                <li><strong>Memory-bound mostrou saturação mais cedo</strong>, provavelmente devido à limitação da largura de banda de memória</li>
+                <li><strong>Eficiência decrescente:</strong> O speedup não é linear devido a overheads e limitações de hardware</li>
+            </ul>
+        </div>
+
+        <h2>Conclusão</h2>
+
+        <p>O multithreading de hardware é uma ferramenta poderosa, mas seu benefício depende fortemente do tipo de carga de trabalho:</p>
+        
+        <p>Os resultados experimentais confirmam a teoria: programas compute-bound escalam melhor (3.27x speedup) que memory-bound (2.12x speedup) devido às diferentes limitações de hardware. Esta compreensão é fundamental para otimizar aplicações paralelas.</p>
+
+        <img src="tarefa4.png" alt="Tarefa 4" style="width: 100%; height: auto; margin-top: 30px; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    </div>
+</body>
+</html>
