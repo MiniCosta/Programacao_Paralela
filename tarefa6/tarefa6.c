@@ -88,7 +88,7 @@ double estimar_pi_reestruturado(long num_pontos) {
             }
         }
         
-        // Sincronização acontece apenas UMA vez por thread (8 vezes total)
+        // Sincronização acontece apenas UMA vez por thread (4 vezes total)
         #pragma omp critical
         pontos_dentro += pontos_locais; // Acumula resultado local no total
     }
@@ -102,11 +102,8 @@ double estimar_pi_private(long num_pontos) {
     long pontos_locais = 999; // Valor inicial que será perdido nas threads
     int thread_id = -1;       // Também será perdido
     
-    printf("\n=== DEMONSTRAÇÃO: PRIVATE ===\n");
-    printf("┌─ ESTADO INICIAL ─────────────────────────────────────────────┐\n");
-    printf("│ pontos_locais = %ld (valor que será perdido nas threads)      │\n", pontos_locais);
-    printf("│ thread_id = %d (valor que será perdido nas threads)           │\n", thread_id);
-    printf("└──────────────────────────────────────────────────────────────┘\n");
+    printf("\n=== CLÁUSULA: PRIVATE ===\n");
+    printf("Antes: pontos_locais=%ld, thread_id=%d (serão perdidos)\n", pontos_locais, thread_id);
     
     #pragma omp parallel private(pontos_locais, thread_id)
     {
@@ -127,17 +124,14 @@ double estimar_pi_private(long num_pontos) {
             }
         }
         
-        printf("│ Thread %d: pontos_locais = %-6ld (cópia independente)      │\n", thread_id, pontos_locais);
-        
         #pragma omp critical
-        pontos_dentro += pontos_locais;
+        {
+            printf("Thread %d: %ld pontos\n", thread_id, pontos_locais);
+            pontos_dentro += pontos_locais;
+        }
     }
     
-    printf("┌─ ESTADO FINAL ───────────────────────────────────────────────┐\n");
-    printf("│ pontos_locais = %ld (valor original inalterado)              │\n", pontos_locais);
-    printf("│ thread_id = %d (valor original inalterado)                   │\n", thread_id);
-    printf("│ 💡 Modificações das threads NÃO afetam variáveis originais   │\n");
-    printf("└──────────────────────────────────────────────────────────────┘\n");
+    printf("Depois: pontos_locais=%ld, thread_id=%d (valores originais inalterados)\n", pontos_locais, thread_id);
     
     return 4.0 * pontos_dentro / num_pontos;
 }
@@ -148,17 +142,13 @@ double estimar_pi_firstprivate(long num_pontos) {
     long contador_inicial = 1000; // Este valor será COPIADO para cada thread
     int multiplicador = 100;      // Este também será copiado
     
-    printf("\n=== DEMONSTRAÇÃO: FIRSTPRIVATE ===\n");
-    printf("┌─ VALORES ORIGINAIS ──────────────────────────────────────────┐\n");
-    printf("│ contador_inicial = %ld (será copiado para cada thread)        │\n", contador_inicial);
-    printf("│ multiplicador = %d (será copiado para cada thread)           │\n", multiplicador);
-    printf("└──────────────────────────────────────────────────────────────┘\n");
+    printf("\n=== CLÁUSULA: FIRSTPRIVATE ===\n");
+    printf("Antes: contador_inicial=%ld, multiplicador=%d (serão copiados)\n", contador_inicial, multiplicador);
     
     #pragma omp parallel firstprivate(contador_inicial, multiplicador)
     {
         int thread_id = omp_get_thread_num();
         // Cada thread automaticamente RECEBE uma CÓPIA dos valores originais!
-        // contador_inicial = 1000, multiplicador = 100 (em cada thread)
         
         long pontos_locais = 0;
         // Usar os valores iniciais para criar sementes diferentes por thread
@@ -178,18 +168,15 @@ double estimar_pi_firstprivate(long num_pontos) {
         contador_inicial += pontos_locais;   // Modificação local (não afeta original)
         multiplicador *= thread_id + 1;      // Modificação local (não afeta original)
         
-        printf("│ Thread %d: contador=%ld, mult=%d, pontos=%-6ld            │\n", 
-               thread_id, contador_inicial, multiplicador, pontos_locais);
-        
         #pragma omp critical
-        pontos_dentro += pontos_locais;
+        {
+            printf("Thread %d: contador=%ld, mult=%d, pontos=%ld\n", 
+                   thread_id, contador_inicial, multiplicador, pontos_locais);
+            pontos_dentro += pontos_locais;
+        }
     }
     
-    printf("┌─ VALORES APÓS REGIÃO PARALELA ──────────────────────────────┐\n");
-    printf("│ contador_inicial = %ld (inalterado)                          │\n", contador_inicial);
-    printf("│ multiplicador = %d (inalterado)                              │\n", multiplicador);
-    printf("│ 🎯 Threads receberam cópias, mas originais não mudaram       │\n");
-    printf("└──────────────────────────────────────────────────────────────┘\n");
+    printf("Depois: contador_inicial=%ld, multiplicador=%d (valores originais preservados)\n", contador_inicial, multiplicador);
     
     return 4.0 * pontos_dentro / num_pontos;
 }
@@ -200,12 +187,8 @@ double estimar_pi_shared(long num_pontos) {
     long contador_compartilhado = 0; // Variável compartilhada - todas threads acessam
     double progresso = 0.0;          // Também compartilhada
     
-    printf("\n=== DEMONSTRAÇÃO: SHARED ===\n");
-    printf("┌─ VARIÁVEIS COMPARTILHADAS INICIAIS ─────────────────────────┐\n");
-    printf("│ contador_compartilhado = %ld                                  │\n", contador_compartilhado);
-    printf("│ progresso = %.1f%%                                            │\n", progresso * 100);
-    printf("│ 🤝 Todas as threads acessarão as MESMAS variáveis            │\n");
-    printf("└──────────────────────────────────────────────────────────────┘\n");
+    printf("\n=== CLÁUSULA: SHARED ===\n");
+    printf("Variáveis compartilhadas: contador=%ld, progresso=%.1f%%\n", contador_compartilhado, progresso * 100);
     
     #pragma omp parallel shared(pontos_dentro, contador_compartilhado, progresso, num_pontos)
     {
@@ -223,28 +206,25 @@ double estimar_pi_shared(long num_pontos) {
             }
             
             // Demonstrar acesso sincronizado a variáveis compartilhadas
-            #pragma omp atomic  // Protege o incremento (mais eficiente que critical para operações simples)
+            #pragma omp atomic  // Protege o incremento
             contador_compartilhado++;
             
-            // Atualizar progresso ocasionalmente (shared variable)
+            // Atualizar progresso ocasionalmente
             if (i % 10000 == 0) {
-                #pragma omp atomic write  // Protege a escrita
+                #pragma omp atomic write
                 progresso = (double)contador_compartilhado / num_pontos;
             }
         }
         
-        // Acumular resultado local na variável compartilhada
         #pragma omp critical
-        pontos_dentro += pontos_locais;
-        
-        printf("│ Thread %d ➤ contribuiu com %-6ld pontos                    │\n", thread_id, pontos_locais);
+        {
+            printf("Thread %d: %ld pontos\n", thread_id, pontos_locais);
+            pontos_dentro += pontos_locais;
+        }
     }
     
-    printf("┌─ ESTADO FINAL DAS VARIÁVEIS COMPARTILHADAS ─────────────────┐\n");
-    printf("│ contador_compartilhado = %-8ld (modificado por todas)        │\n", contador_compartilhado);
-    printf("│ progresso = %.1f%% (atualizado colaborativamente)             │\n", progresso * 100);
-    printf("│ ⚠️ Sincronização foi necessária para evitar conflitos       │\n");
-    printf("└──────────────────────────────────────────────────────────────┘\n");
+    printf("Final: contador=%ld, progresso=%.1f%% (modificadas por todas threads)\n", 
+           contador_compartilhado, progresso * 100);
     
     return 4.0 * pontos_dentro / num_pontos;
 }
@@ -255,13 +235,8 @@ double estimar_pi_lastprivate(long num_pontos) {
     int ultimo_indice = -1;           // Será sobrescrito com índice da última iteração
     int thread_da_ultima_iteracao = -1; // Será sobrescrito com ID da thread que executou por último
     
-    printf("\n=== DEMONSTRAÇÃO: LASTPRIVATE ===\n");
-    printf("┌─ ESTADO INICIAL DAS VARIÁVEIS ──────────────────────────────┐\n");
-    printf("│ ultimo_indice = %d                                           │\n", ultimo_indice);
-    printf("│ thread_da_ultima_iteracao = %d                               │\n", thread_da_ultima_iteracao);
-    printf("│ 📝 Cada thread terá suas próprias cópias                    │\n");
-    printf("│ 🎯 Valores finais serão da thread que executar por último    │\n");
-    printf("└──────────────────────────────────────────────────────────────┘\n");
+    printf("\n=== CLÁUSULA: LASTPRIVATE ===\n");
+    printf("Antes: ultimo_indice=%d, thread_da_ultima_iteracao=%d\n", ultimo_indice, thread_da_ultima_iteracao);
     
     #pragma omp parallel
     {
@@ -279,24 +254,18 @@ double estimar_pi_lastprivate(long num_pontos) {
                 pontos_locais++;
             }
             
-            // Estas atribuições acontecem em CADA iteração, CADA thread
-            // Mas apenas os valores da ÚLTIMA iteração (maior i) serão preservados
-            ultimo_indice = i;                    // Na última iteração: será o maior índice
-            thread_da_ultima_iteracao = thread_id; // Na última iteração: será a thread que executou
+            // Estas atribuições acontecem em CADA iteração
+            // Mas apenas os valores da ÚLTIMA iteração serão preservados
+            ultimo_indice = i;
+            thread_da_ultima_iteracao = thread_id;
         }
         
         #pragma omp critical
         pontos_dentro += pontos_locais;
     }
     
-    // Após a região paralela: variáveis contêm valores da thread que executou a última iteração
-    printf("┌─ ESTADO FINAL DAS VARIÁVEIS ────────────────────────────────┐\n");
-    printf("│ ultimo_indice = %-8d (índice da última iteração)            │\n", ultimo_indice);
-    printf("│ thread_da_ultima_iteracao = %d                               │\n", thread_da_ultima_iteracao);
-    printf("│ ✨ Thread %d executou a iteração final (índice %d)           │\n", 
-           thread_da_ultima_iteracao, ultimo_indice);
-    printf("│ 🏁 Apenas valores da última iteração foram preservados       │\n");
-    printf("└──────────────────────────────────────────────────────────────┘\n");
+    printf("Depois: ultimo_indice=%d, thread_da_ultima_iteracao=%d (valores da última iteração)\n", 
+           ultimo_indice, thread_da_ultima_iteracao);
     
     return 4.0 * pontos_dentro / num_pontos;
 }
@@ -324,11 +293,14 @@ void testar_implementacao(const char* nome, double (*funcao)(long), long num_pon
 }
 
 int main() {
-    long num_pontos = 100000; // 100 mil pontos para demonstrações rápidas mas significativas
+    // Configurar o número de threads para 4
+    omp_set_num_threads(4);
+    
+    long num_pontos = 250000000; // 250 milhões de pontos para demonstração com formatação limpa
     
     printf("=== ESTIMATIVA DE π USANDO MÉTODO DE MONTE CARLO ===\n");
     printf("Número de pontos: %ld\n", num_pontos);
-    printf("Threads disponíveis: %d\n", omp_get_max_threads());
+    printf("Número de threads configuradas: %d\n", omp_get_max_threads());
     printf("Valor real de π: %.10f\n", M_PI);
     
     // 1. Versão sequencial (referência)
@@ -350,14 +322,14 @@ int main() {
     // 5. Demonstrações das cláusulas
     printf("\n\n*** DEMONSTRAÇÕES DAS CLÁUSULAS OpenMP ***\n");
     
-    // Usar dataset menor para demonstrações mais claras e rápidas
-    testar_implementacao("CLÁUSULA PRIVATE", estimar_pi_private, num_pontos / 10);
+    // Usar dataset completo para demonstrações com 250 milhões de pontos
+    testar_implementacao("CLÁUSULA PRIVATE", estimar_pi_private, num_pontos);
     
-    testar_implementacao("CLÁUSULA FIRSTPRIVATE", estimar_pi_firstprivate, num_pontos / 10);
+    testar_implementacao("CLÁUSULA FIRSTPRIVATE", estimar_pi_firstprivate, num_pontos);
     
-    testar_implementacao("CLÁUSULA SHARED", estimar_pi_shared, num_pontos / 10);
+    testar_implementacao("CLÁUSULA SHARED", estimar_pi_shared, num_pontos);
     
-    testar_implementacao("CLÁUSULA LASTPRIVATE", estimar_pi_lastprivate, num_pontos / 10);
+    testar_implementacao("CLÁUSULA LASTPRIVATE", estimar_pi_lastprivate, num_pontos);
     
     return 0;
 }

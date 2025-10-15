@@ -196,9 +196,9 @@
         <p><strong>Resultados Inconsistentes Observados:</strong></p>
         <table>
             <tr><th>Execução</th><th>π Estimado</th><th>Erro</th><th>Tempo (s)</th><th>Explicação</th></tr>
-            <tr><td>1</td><td>0.453920</td><td>85.551%</td><td>0.0115</td><td rowspan="3">Incrementos perdidos devido à corrida entre threads</td></tr>
-            <tr><td>2</td><td>0.448800</td><td>85.714%</td><td>0.0035</td></tr>
-            <tr><td>3</td><td>0.709560</td><td>77.414%</td><td>0.0074</td></tr>
+            <tr><td>1</td><td>0.913476</td><td>70.923%</td><td>2.8614</td><td rowspan="3">Com 250M pontos: perdeu ~70% dos incrementos</td></tr>
+            <tr><td>2</td><td>0.865560</td><td>72.448%</td><td>2.7982</td></tr>
+            <tr><td>3</td><td>0.911949</td><td>70.972%</td><td>2.8158</td></tr>
         </table>
         
         <h3>3. Correção com #pragma omp critical</h3>
@@ -222,14 +222,14 @@
             
             <strong>🚦 O Gargalo em Ação:</strong><br>
             • <strong>Threads esperando:</strong> Quando uma thread está no critical, todas as outras ficam bloqueadas<br>
-            • <strong>Serialização forçada:</strong> 8 threads executando como se fosse 1 thread<br>
+            • <strong>Serialização forçada:</strong> 4 threads executando como se fosse 1 thread<br>
             • <strong>Overhead de sincronização:</strong> Cada critical section tem custo computacional<br><br>
             
-            <strong>📊 Análise de Performance (100k pontos, ~78k hits):</strong><br>
-            • <strong>Tempo total:</strong> 0.0170s (vs 0.0062s sequencial)<br>
-            • <strong>Speedup:</strong> 0.36x (na verdade ficou <strong>2.7x mais lento!</strong>)<br>
-            • <strong>Critical sections executadas:</strong> ~78.000 (uma para cada ponto dentro do círculo)<br>
-            • <strong>Tempo perdido:</strong> Threads ficam 60% do tempo esperando na fila do critical
+            <strong>📊 Análise de Performance (250M pontos, ~196M hits):</strong><br>
+            • <strong>Tempo total:</strong> 21.28s (vs 3.62s sequencial)<br>
+            • <strong>Speedup:</strong> 0.17x (na verdade ficou <strong>6x mais lento!</strong>)<br>
+            • <strong>Critical sections executadas:</strong> ~196.000.000 (uma para cada ponto dentro do círculo)<br>
+            • <strong>Tempo perdido:</strong> Threads ficam 80% do tempo esperando na fila do critical
         </div>
         
         <h3>4. Reestruturação com #pragma omp parallel seguido de #pragma omp for</h3>
@@ -242,36 +242,80 @@
             
             <strong>⚡ Comparação de Sincronizações:</strong>
             <table style="margin: 10px 0; font-size: 14px;">
-                <tr><th>Abordagem</th><th>Sincronizações</th><th>Exemplo (100k pontos, ~78k hits)</th></tr>
+                <tr><th>Abordagem</th><th>Sincronizações</th><th>Exemplo (250M pontos, ~196M hits)</th></tr>
                 <tr style="background-color: #ffebee;">
                     <td><code>#pragma omp critical</code><br>dentro do loop</td>
                     <td>A cada incremento</td>
-                    <td><strong>~78.000 sincronizações!</strong><br>Cada hit = 1 critical section</td>
+                    <td><strong>~196.000.000 sincronizações!</strong><br>Cada hit = 1 critical section</td>
                 </tr>
                 <tr style="background-color: #e8f5e8;">
                     <td><code>#pragma omp parallel</code><br>+ acumulação local</td>
                     <td>Uma por thread</td>
-                    <td><strong>8 sincronizações</strong><br>Uma por thread no final</td>
+                    <td><strong>4 sincronizações</strong><br>Uma por thread no final</td>
                 </tr>
             </table>
             
             <strong>🔧 Funcionamento Passo a Passo:</strong>
             <ol>
-                <li><strong>Criação das Threads:</strong> <code>#pragma omp parallel</code> cria 8 threads</li>
+                <li><strong>Criação das Threads:</strong> <code>#pragma omp parallel</code> cria 4 threads</li>
                 <li><strong>Variáveis Locais:</strong> Cada thread tem sua própria <code>pontos_locais = 0</code></li>
-                <li><strong>Divisão do Trabalho:</strong> <code>#pragma omp for</code> divide 100k iterações entre threads</li>
+                <li><strong>Divisão do Trabalho:</strong> <code>#pragma omp for</code> divide 250M iterações entre 4 threads</li>
                 <li><strong>Acumulação Local:</strong> Cada thread incrementa apenas sua variável local</li>
                 <li><strong>Sincronização Final:</strong> Apenas no final, cada thread adiciona sua soma ao total</li>
             </ol>
             
             <strong>🏆 Resultados da Performance:</strong>
             <ul>
-                <li><strong>Tempo:</strong> 0.0003s vs 0.0170s do critical (56x mais rápido!)</li>
-                <li><strong>Speedup:</strong> 20.7x comparado ao sequencial</li>
+                <li><strong>Tempo:</strong> 1.28s vs 21.28s do critical (16.7x mais rápido!)</li>
+                <li><strong>Speedup:</strong> 2.8x comparado ao sequencial (com 4 threads)</li>
                 <li><strong>Precisão:</strong> Mantém a correção completa dos resultados</li>
-                <li><strong>Escalabilidade:</strong> Performance melhora linearmente com mais cores</li>
+                <li><strong>Escalabilidade:</strong> Performance melhora com mais threads disponíveis</li>
             </ul>
         </div>
+        
+        <h2>Performance Comparada</h2>
+        <table>
+            <tr>    
+                <th>Versão</th>
+                <th>Tempo (s)</th>
+                <th>π Estimado</th>
+                <th>Erro (%)</th>
+                <th>Speedup</th>
+                <th>Observações</th>
+            </tr>
+            <tr>
+                <td>Sequencial</td>
+                <td>3.6101</td>
+                <td>3.141578</td>
+                <td>0.000%</td>
+                <td>1.0x</td>
+                <td>Referência (250M pontos)</td>
+            </tr>
+            <tr style="background-color: #ffe6e6;">
+                <td>Race Condition</td>
+                <td>2.45-2.48</td>
+                <td>0.843-0.880</td>
+                <td>71-73%</td>
+                <td>1.5x</td>
+                <td><strong>Catastrófico - perdeu ~73% dos incrementos</strong></td>
+            </tr>
+            <tr style="background-color: #fff9e6;">
+                <td>Critical</td>
+                <td>21.3381</td>
+                <td>3.141593</td>
+                <td>0.000%</td>
+                <td>0.17x</td>
+                <td>Correto, mas <strong>5.9x mais lento</strong></td>
+            </tr>
+            <tr style="background-color: #e6f7e6;">
+                <td>Reestruturado</td>
+                <td>0.9039</td>
+                <td>3.141587</td>
+                <td>0.000%</td>
+                <td>4.0x</td>
+                <td><strong>Melhor performance com 4 threads</strong></td>
+            </tr>
+        </table>
         
         <h2>Demonstrações Detalhadas das Cláusulas OpenMP</h2>
         
@@ -296,6 +340,7 @@
                         <span style="color: #d32f2f;">Thread 0:</span> variavel = ???<br>
                         <span style="color: #388e3c;">Thread 1:</span> variavel = ???<br>
                         <span style="color: #f57c00;">Thread 2:</span> variavel = ???<br>
+                        <span style="color: #7b1fa2;">Thread 3:</span> variavel = ???<br>
                         <small style="color: #6c757d;">💡 Cada thread tem sua cópia, valor inicial indefinido</small>
                     </div>
                     <div style="background: #f8d7da; padding: 8px; border-radius: 4px;">
@@ -324,6 +369,7 @@
                         <span style="color: #d32f2f;">Thread 0:</span> contador = 50 → 60<br>
                         <span style="color: #388e3c;">Thread 1:</span> contador = 50 → 75<br>
                         <span style="color: #f57c00;">Thread 2:</span> contador = 50 → 55<br>
+                        <span style="color: #7b1fa2;">Thread 3:</span> contador = 50 → 65<br>
                         <small style="color: #6c757d;">💡 Todas começam com 50, modificam independentemente</small>
                     </div>
                     <div style="background: #d1ecf1; padding: 8px; border-radius: 4px;">
@@ -352,10 +398,11 @@
                         <span style="color: #d32f2f;">Thread 0:</span> soma_total += 10 → 10<br>
                         <span style="color: #388e3c;">Thread 1:</span> soma_total += 20 → 30<br>
                         <span style="color: #f57c00;">Thread 2:</span> soma_total += 15 → 45<br>
+                        <span style="color: #7b1fa2;">Thread 3:</span> soma_total += 25 → 70<br>
                         <small style="color: #dc3545;">⚠️ Requer sincronização!</small>
                     </div>
                     <div style="background: #d4edda; padding: 8px; border-radius: 4px;">
-                        <strong style="color: #155724;">⬆️ DEPOIS:</strong> soma_total = 45
+                        <strong style="color: #155724;">⬆️ DEPOIS:</strong> soma_total = 70
                     </div>
                 </div>
             </div>
@@ -390,51 +437,75 @@
             </div>
         </div>
 
-        
-        <h3>Performance Comparada</h3>
+        <h3>Performance das Cláusulas OpenMP (250 Milhões de Pontos)</h3>
         <table>
-            <tr>    
-                <th>Versão</th>
+            <tr>
+                <th>Cláusula</th>
                 <th>Tempo (s)</th>
                 <th>π Estimado</th>
                 <th>Erro (%)</th>
-                <th>Speedup</th>
-                <th>Observações</th>
+                <th>Speedup vs Sequencial</th>
+                <th>Características Principais</th>
             </tr>
-            <tr>
-                <td>Sequencial</td>
-                <td>0.0062</td>
-                <td>3.137000</td>
-                <td>0.146%</td>
-                <td>1.0x</td>
-                <td>Referência</td>
+            <tr style="background-color: #e8f5e8;">
+                <td><strong>PRIVATE</strong></td>
+                <td>0.9532</td>
+                <td>3.141587</td>
+                <td>0.000%</td>
+                <td><strong>3.8x</strong></td>
+                <td>Quase igual ao reestruturado - Inicialização manual</td>
+            </tr>
+            <tr style="background-color: #e8f5e8;">
+                <td><strong>LASTPRIVATE</strong></td>
+                <td>1.0889</td>
+                <td>3.141587</td>
+                <td>0.000%</td>
+                <td><strong>3.3x</strong></td>
+                <td>Performance excelente - Preserva última iteração</td>
+            </tr>
+            <tr style="background-color: #e8f5e8;">
+                <td><strong>FIRSTPRIVATE</strong></td>
+                <td>1.0608</td>
+                <td>3.141548</td>
+                <td>0.001%</td>
+                <td><strong>3.4x</strong></td>
+                <td>Overhead moderado - Copia automaticamente</td>
             </tr>
             <tr style="background-color: #ffe6e6;">
-                <td>Race Condition</td>
-                <td>0.0035-0.0115</td>
-                <td>0.449-0.710</td>
-                <td>77-86%</td>
-                <td>0.5-1.8x</td>
-                <td><strong>Altamente inconsistente</strong></td>
-            </tr>
-            <tr style="background-color: #fff9e6;">
-                <td>Critical</td>
-                <td>0.0170</td>
-                <td>3.140240</td>
-                <td>0.043%</td>
-                <td>0.36x</td>
-                <td>Correto, mas <strong>2.7x mais lento</strong></td>
-            </tr>
-            <tr style="background-color: #e6f7e6;">
-                <td>Reestruturado</td>
-                <td>0.0003</td>
-                <td>3.135560</td>
-                <td>0.192%</td>
-                <td>20.7x</td>
-                <td><strong>Melhor performance</strong></td>
+                <td><strong>SHARED</strong></td>
+                <td>7.3141</td>
+                <td>3.141587</td>
+                <td>0.000%</td>
+                <td><strong>0.49x</strong></td>
+                <td><strong>Mais lenta que sequencial!</strong> - Atomic mata performance</td>
             </tr>
         </table>
-        
+
+        <div class="solution">
+            <strong>🎯 Por que apenas SHARED é lenta?</strong><br><br>
+            
+            <strong>📊 Comparação com a Versão Reestruturada (0.9039s):</strong><br>
+            • <strong>PRIVATE (0.9532s):</strong> Quase idêntica - diferença de apenas 49ms<br>
+            • <strong>FIRSTPRIVATE (1.0608s):</strong> Overhead mínimo - diferença de 157ms<br>
+            • <strong>LASTPRIVATE (1.0889s):</strong> Overhead pequeno - diferença de 185ms<br>
+            • <strong>SHARED (7.3141s):</strong> ⚠️ <strong>CATASTRÓFICA</strong> - 7.7x mais lenta!<br><br>
+            
+            <strong>🔍 Explicação Técnica:</strong><br><br>
+            
+            <strong>✅ PRIVATE, FIRSTPRIVATE e LASTPRIVATE:</strong><br>
+            • Fazem <strong>acumulação local</strong> (igual ao reestruturado)<br>
+            • Cada thread conta seus pontos em variável <strong>privada</strong><br>
+            • Sincronização acontece apenas <strong>1x por thread</strong> (4 vezes total)<br>
+            • Resultado: <strong>Performance quase ótima</strong><br><br>
+            
+            <strong>❌ SHARED com Atomic:</strong><br>
+            • Usa <code>contador_compartilhado</code> com <code>#pragma omp atomic</code><br>
+            • <strong>Sincronização a CADA iteração</strong> (250 milhões de vezes!)<br>
+            • Threads competem pelo mesmo contador a cada ponto processado<br>
+            • Resultado: <strong>Overhead de sincronização mata a performance</strong><br><br>
+            
+            <strong>💡 Conclusão:</strong> SHARED é lenta porque força sincronização massiva, enquanto as outras cláusulas mantêm o padrão eficiente de acumulação local do reestruturado.
+        </div>
 
         <h2>Dica de Boas Práticas: <code>default(none)</code> no OpenMP</h2>
         <div class="warning">
@@ -450,15 +521,17 @@
         </div>
         <h2>Análise dos Resultados</h2>
         
-        <h3>Observações Críticas</h3>
+        <h3>Observações Críticas (250 Milhões de Pontos - Execução Atualizada)</h3>
         <ol>
-            <li><strong>Condição de Corrida Severa:</strong> A versão incorreta com `#pragma omp parallel for` apresenta erros extremos (77-86%), demonstrando que race conditions podem tornar programas paralelos completamente inúteis.</li>
+            <li><strong>Condição de Corrida Catastrófica:</strong> A versão incorreta com `#pragma omp parallel for` apresenta erros extremos (71-73%), perdendo ~73% dos incrementos e tornando o programa completamente inútil.</li>
             
-            <li><strong>Critical Section - Gargalo Moderado:</strong> A correção com `#pragma omp critical` funciona, mas é 2.7x mais lenta que a versão sequencial devido à sincronização excessiva.</li>
+            <li><strong>Critical Section - Gargalo Extremo:</strong> A correção com `#pragma omp critical` funciona, mas é 5.9x mais lenta que a versão sequencial (21.3s vs 3.6s) devido à sincronização excessiva.</li>
             
-            <li><strong>Reestruturação Bem-Sucedida:</strong> A abordagem com `#pragma omp parallel` + `#pragma omp for` e acumulação local consegue speedup de 20.7x, demonstrando o valor de minimizar sincronização.</li>
+            <li><strong>Reestruturação Bem-Sucedida:</strong> A abordagem com `#pragma omp parallel` + `#pragma omp for` e acumulação local consegue speedup excepcional de **4.0x** (0.9039s vs 3.6101s), demonstrando paralelização eficiente.</li>
             
-            <li><strong>Cláusulas Funcionam Corretamente:</strong> Todas as demonstrações das cláusulas (private, firstprivate, shared, lastprivate) produzem resultados precisos, confirmando o comportamento esperado de cada uma.</li>
+            <li><strong>Cláusulas com Dataset Completo:</strong> Todas as demonstrações das cláusulas usam o dataset completo (250M pontos), confirmando comportamento correto e revelando diferenças sutis de performance entre elas.</li>
+            
+            <li><strong>Performance Ranking:</strong> PRIVATE (0.95s) ≈ REESTRUTURADO (0.90s) > FIRSTPRIVATE (1.06s) > LASTPRIVATE (1.09s) >> SHARED (7.31s)</li>
         </ol>
         
         <h3>Lições Aprendidas sobre Cláusulas OpenMP</h3>
@@ -471,9 +544,10 @@
         
         <h2>Conclusões</h2>
         <ol>
-            <li><strong>Condições de corrida</strong> são um problema crítico na paralelização que pode levar a resultados completamente incorretos (erros de 77-86% observados)</li>
-            <li><strong>Critical sections</strong> resolvem o problema mas introduzem overhead significativo (2.7x mais lento que sequencial)</li>
-            <li><strong>Reestruturação inteligente</strong> é fundamental - separar `#pragma omp parallel` de `#pragma omp for` permitiu speedup de 20.7x</li>
+            <li><strong>Condições de corrida</strong> são um problema crítico na paralelização que pode levar a resultados completamente incorretos (erros de 70-72% observados com dataset grande)</li>
+            <li><strong>Critical sections</strong> resolvem o problema mas introduzem overhead extremo (6x mais lento que sequencial com 196M sincronizações)</li>
+            <li><strong>Reestruturação inteligente</strong> é fundamental - separar `#pragma omp parallel` de `#pragma omp for` permitiu speedup de 2.8x com 4 threads</li>
+            <li><strong>Escalabilidade confirmada</strong> - Com datasets grandes, a diferença entre abordagens corretas e incorretas fica ainda mais evidente</li>
             <li><strong>Cláusulas OpenMP</strong> oferecem controle preciso sobre o escopo de variáveis:
                 <ul>
                     <li>Use <code>private</code> para variáveis temporárias que não precisam de valor inicial</li>
@@ -483,7 +557,6 @@
                     <li>Use <code>default(none)</code> para garantir controle explícito de todas as variáveis</li>
                 </ul>
             </li>
-            <li><strong>Minimizar sincronização</strong> é chave para alta performance - acumulação local seguida de sincronização única é muito mais eficiente que múltiplas sincronizações</li>
         </ol>
         
        
