@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tarefa 5 - Contagem de Números Primos com OpenMP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -55,21 +58,62 @@
       }
 
       .code-block {
-        background-color: #2c3e50;
-        color: #ecf0f1;
-        padding: 15px;
-        border-radius: 5px;
-        font-family: "Courier New", monospace;
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: "Fira Code", "Consolas", "Monaco", "Courier New", monospace;
         overflow-x: auto;
-        margin: 15px 0;
+        margin: 20px 0;
+        border: 1px solid #333;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        line-height: 1.6;
+        font-size: 14px;
+        position: relative;
       }
 
-      .inline-code {
-        background-color: #ecf0f1;
-        padding: 2px 5px;
+      .code-block::before {
+        content: attr(data-lang);
+        position: absolute;
+        top: 8px;
+        right: 15px;
+        background-color: #007acc;
+        color: white;
+        padding: 2px 8px;
         border-radius: 3px;
-        font-family: "Courier New", monospace;
-        color: #e74c3c;
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      .code-block pre {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      /* Syntax highlighting colors */
+      .code-block .comment { color: #6A9955; font-style: italic; }
+      .code-block .keyword { color: #569CD6; font-weight: bold; }
+      .code-block .function { color: #DCDCAA; }
+      .code-block .string { color: #CE9178; }
+      .code-block .number { color: #B5CEA8; }
+      .code-block .operator { color: #D4D4D4; }
+      .code-block .pragma { color: #C586C0; font-weight: bold; }
+      .code-block .error { color: #F44747; font-weight: bold; }
+      .code-block .success { color: #4EC9B0; font-weight: bold; }
+
+      .inline-code {
+        background-color: #f8f8f8;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-family: "Fira Code", "Consolas", "Monaco", "Courier New", monospace;
+        color: #d73a49;
+        border: 1px solid #e1e4e8;
+        font-size: 0.9em;
+        font-weight: 500;
       }
 
       table {
@@ -203,6 +247,7 @@
         <li><a href="#analise-codigo">Análise do Código</a></li>
         <li><a href="#overhead">Análise de Overhead</a></li>
         <li><a href="#resultados">Resultados</a></li>
+        <li><a href="#desafios">Desafios Paralelos</a></li>
         <li><a href="#conclusoes">Conclusões</a></li>
       </ul>
     </nav>
@@ -259,41 +304,58 @@
         <h2>Análise do Código</h2>
 
         <div class="highlight">
-          <h4>Elementos-chave da paralelização:</h4>
+          <h4>Implementação Atual - Paralelização Básica:</h4>
           <ul>
             <li>
               <span class="inline-code">parallel for</span>: Distribui iterações
               do loop entre threads
             </li>
             <li>
-              <span class="inline-code">reduction(+:contador)</span>: Evita
-              condições de corrida na soma
+              <strong class="error">SEM reduction</strong>: Demonstra problemas de condição de corrida (race condition)
             </li>
-            <li>Cada thread mantém uma cópia local do contador</li>
-            <li>Ao final, todas as cópias são somadas automaticamente</li>
+            <li>Cada thread acessa diretamente a variável compartilhada <span class="inline-code">contador</span></li>
+            <li>Resultados incorretos devido à falta de sincronização</li>
           </ul>
         </div>
 
         <div class="metrics">
           <div class="metric-card">
-            <div class="metric-value">8x</div>
-            <div class="metric-label">Speedup Teórico Máximo</div>
+            <div class="metric-value">4x</div>
+            <div class="metric-label">Threads Fixas</div>
           </div>
           <div class="metric-card">
-            <div class="metric-value">3-4x</div>
-            <div class="metric-label">Speedup Prático Observado</div>
+            <div class="metric-value">~3x</div>
+            <div class="metric-label">Speedup Observado</div>
           </div>
           <div class="metric-card">
-            <div class="metric-value">40-60%</div>
-            <div class="metric-label">Eficiência Esperada</div>
+            <div class="metric-value error">ERRO</div>
+            <div class="metric-label">Race Condition</div>
           </div>
         </div>
       </section>
 
       <section id="overhead">
-        <h2>Análise de Overhead e Performance</h2>
+        <h2>Análise da Race Condition</h2>
 
-        <h3>Por que Versão Sequencial é Mais Rápida para n Pequenos?</h3>
+        <h3>O que Acontece na Race Condition?</h3>
+
+          <h4>Cenário de Race Condition:</h4>
+          <div class="code-block" data-lang="timeline">
+            <pre><span class="comment">// Timeline da Race Condition (contador inicial = 100)</span>
+<span class="keyword">Tempo    Thread A              Thread B              Resultado</span>
+<span class="number">T1</span>       <span class="function">LOAD</span> contador → 100                           contador = 100
+<span class="number">T2</span>                             <span class="function">LOAD</span> contador → 100    contador = 100
+<span class="number">T3</span>       <span class="function">ADD</span> 1 → reg_A = 101                         contador = 100
+<span class="number">T4</span>                             <span class="function">ADD</span> 1 → reg_B = 101   contador = 100
+<span class="number">T5</span>       <span class="function">STORE</span> 101 → contador                       <span class="success">contador = 101</span>
+<span class="number">T6</span>                             <span class="function">STORE</span> 101 → contador   <span class="error">contador = 101</span>
+
+<span class="error">ESPERADO:</span> contador = 102 (duas operações de incremento)
+<span class="error">RESULTADO:</span> contador = 101 (uma operação foi perdida!)</pre>
+          </div>
+        </div>
+
+        <h3>Por que a Perda Varia com o Tamanho do Problema?</h3>
         <p>
           O <strong>overhead de paralelização</strong> consiste em vários
           componentes que podem superar os benefícios para problemas pequenos:
@@ -301,10 +363,15 @@
 
         <div class="analysis-section">
           <h4>1. Custos de Criação de Threads</h4>
-          <div class="code-block">
-            Tempo para criar 8 threads: ~0.0001-0.0002 segundos Tempo para
-            computar 1000 primos: ~0.00001 segundos Resultado: Overhead é 10-20x
-            maior que o trabalho útil!
+          <div class="code-block" data-lang="analysis">
+            <pre><span class="comment">// Análise de Overhead para n = 1000</span>
+<span class="keyword">Tempo para criar</span> <span class="number">4</span> <span class="keyword">threads:</span>     ~<span class="number">0.0001-0.0002</span> segundos
+<span class="keyword">Tempo para computar</span> <span class="number">1000</span> <span class="keyword">primos:</span>  ~<span class="number">0.00001</span> segundos
+
+<span class="error">Resultado:</span> Overhead é <span class="error">10-20x maior</span> que o trabalho útil!
+
+<span class="comment">// Para problemas pequenos, o custo de paralelização</span>
+<span class="comment">// supera os benefícios do processamento paralelo</span></pre>
           </div>
 
           <h4>2. Sincronização e Redução</h4>
@@ -323,7 +390,7 @@
           </ul>
 
           <h4>3. Distribuição de Carga</h4>
-          <p>Para n = 1000 com 8 threads:</p>
+          <p>Para n = 1000 com 4 threads:</p>
           <ul>
             <li>Thread 0: números 2, 10, 18, 26... (125 números)</li>
             <li>Thread 1: números 3, 11, 19, 27... (125 números)</li>
@@ -377,84 +444,214 @@
       <section id="resultados">
         <h2>Resultados Experimentais</h2>
 
-        <h3>Performance Observada</h3>
+        <h3>Performance Observada (4 Threads Fixas - SEM Reduction)</h3>
         <table>
           <thead>
             <tr>
               <th>n</th>
-              <th>Primos</th>
-              <th>Tempo Seq</th>
-              <th>Tempo Par</th>
+              <th>Primos Corretos</th>
+              <th>Primos Paralelo</th>
+              <th>Diferença</th>
+              <th>Tempo Seq (s)</th>
+              <th>Tempo Par (s)</th>
               <th>Speedup</th>
-              <th>Eficiência</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>1000</td>
               <td>168</td>
-              <td>0.000011s</td>
-              <td>0.000113s</td>
-              <td class="error">0.09x</td>
-              <td class="error">1.1%</td>
+              <td class="error">112</td>
+              <td class="error">-56 (-33%)</td>
+              <td>0.000047</td>
+              <td>0.000168</td>
+              <td class="error">0.28x</td>
+              <td class="error">ERRO - Race Condition</td>
             </tr>
             <tr>
               <td>10000</td>
               <td>1229</td>
-              <td>0.000190s</td>
-              <td>0.004460s</td>
-              <td class="error">0.04x</td>
-              <td class="error">0.5%</td>
+              <td class="error">994</td>
+              <td class="error">-235 (-19%)</td>
+              <td>0.000654</td>
+              <td>0.000256</td>
+              <td class="warning">2.55x</td>
+              <td class="error">ERRO - Race Condition</td>
             </tr>
             <tr>
               <td>100000</td>
               <td>9592</td>
-              <td>0.003703s</td>
-              <td>0.001484s</td>
-              <td class="warning">2.50x</td>
-              <td class="warning">31.3%</td>
-            </tr>
-            <tr>
-              <td>500000</td>
-              <td>41538</td>
-              <td>0.032372s</td>
-              <td>0.007992s</td>
-              <td class="success">4.05x</td>
-              <td class="success">50.6%</td>
+              <td class="error">8843</td>
+              <td class="error">-749 (-8%)</td>
+              <td>0.009823</td>
+              <td>0.002585</td>
+              <td class="warning">3.80x</td>
+              <td class="error">ERRO - Race Condition</td>
             </tr>
             <tr>
               <td>1000000</td>
               <td>78498</td>
-              <td>0.083585s</td>
-              <td>0.021391s</td>
-              <td class="success">3.91x</td>
-              <td class="success">48.9%</td>
+              <td class="error">76514</td>
+              <td class="error">-1984 (-3%)</td>
+              <td>0.112938</td>
+              <td>0.056190</td>
+              <td class="success">2.01x</td>
+              <td class="error">ERRO - Race Condition</td>
+            </tr>
+            <tr>
+              <td>10000000</td>
+              <td>664579</td>
+              <td class="error">651086</td>
+              <td class="error">-13493 (-2%)</td>
+              <td>2.683373</td>
+              <td>0.909031</td>
+              <td class="success">2.95x</td>
+              <td class="error">ERRO - Race Condition</td>
             </tr>
           </tbody>
         </table>
 
-        <h3>Interpretação dos Resultados</h3>
+        <h3>Análise Detalhada da Race Condition</h3>
         <div class="analysis-section">
-          <h4>1. Região de Overhead (n &lt; 100.000):</h4>
+          <h4>1. Padrão de Perdas por Race Condition:</h4>
           <ul>
-            <li>Speedup &lt; 1: Versão sequencial vence</li>
-            <li>Overhead de criação de threads domina</li>
-            <li>Eficiência muito baixa (&lt;5%)</li>
+            <li><strong class="error">n = 1000: Perde 56 primos (-33%)</strong> - Overhead massivo + muitas colisões</li>
+            <li><strong class="error">n = 10000: Perde 235 primos (-19%)</strong> - Alta frequência de colisões</li>
+            <li><strong class="error">n = 100000: Perde 749 primos (-8%)</strong> - Colisões moderadas</li>
+            <li><strong class="error">n = 1000000: Perde 1984 primos (-3%)</strong> - Menos colisões relativas</li>
+            <li><strong class="error">n = 10000000: Perde 13493 primos (-2%)</strong> - Proporção menor de colisões</li>
           </ul>
 
-          <h4>2. Região de Transição (n ≈ 100.000):</h4>
+          <h4>2. Por que a Perda Percentual Diminui?</h4>
           <ul>
-            <li>Ponto de break-even</li>
-            <li>Speedup começa a aparecer</li>
-            <li>Eficiência ainda baixa (~30%)</li>
+            <li><strong>Densidade de Operações</strong>: Mais trabalho computacional por thread</li>
+            <li><strong>Menos Contenção Relativa</strong>: Operações de incremento se tornam menos frequentes</li>
+            <li><strong>Distribuição Temporal</strong>: Threads passam mais tempo calculando que competindo</li>
+            <li><strong>MAS ainda há perdas absolutas significativas!</strong></li>
           </ul>
 
-          <h4>3. Região Eficiente (n &gt; 500.000):</h4>
+          <h4>3. Variabilidade dos Resultados:</h4>
           <ul>
-            <li>Speedup estável ~4x</li>
-            <li>Eficiência ~50%</li>
-            <li>Trabalho computacional justifica overhead</li>
+            <li>Cada execução produz <strong>resultados diferentes</strong></li>
+            <li>Depende do timing exato das threads</li>
+            <li>Torna debugging extremamente difícil</li>
+            <li>Comportamento não-determinístico é inaceitável</li>
           </ul>
+
+          <h4>4. Speedup Ilusório:</h4>
+          <ul>
+            <li>Speedup existe mas os resultados estão <strong>incorretos</strong></li>
+            <li>Para n = 1000: Overhead ainda domina (speedup 0.28x)</li>
+            <li>Para n ≥ 10000: Speedup aparente de ~2.0-3.8x</li>
+            <li><strong>Performance sem correção é completamente inútil</strong></li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="desafios">
+        <h2>Por que é mais desafiador programar em paralelo?</h2>
+
+        <div class="analysis-section">
+          <p>
+            A programação paralela introduz complexidades que não existem na programação sequencial.
+            Este projeto demonstra alguns dos principais desafios que tornam a programação paralela
+            mais difícil de dominar.
+          </p>
+        </div>
+
+        <h3>1. Sincronização - O Desafio Central</h3>
+        <div class="analysis-section">
+          <h4>Problema Demonstrado:</h4>
+          <ul>
+            <li><strong>Race Conditions</strong>: Múltiplas threads acessando <span class="inline-code">contador</span> simultaneamente</li>
+            <li><strong>Operações Não-Atômicas</strong>: <span class="inline-code">contador++</span> é na verdade 3 instruções assembly</li>
+            <li><strong>Resultados Imprevisíveis</strong>: Cada execução produz resultado diferente</li>
+          </ul>
+
+          <h4>Soluções de Sincronização:</h4>
+          <div class="code-block" data-lang="c">
+            <pre><span class="comment">// ❌ ERRADO - Race Condition (implementação atual)</span>
+<span class="keyword">int</span> <span class="function">contar_primos_paralelo</span>(<span class="keyword">int</span> n) {
+    <span class="keyword">int</span> contador = <span class="number">0</span>;  <span class="comment">// Variável compartilhada - PERIGOSO!</span>
+    
+    <span class="pragma">#pragma omp parallel for</span>  <span class="comment">// SEM reduction</span>
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i <= n; i++) {
+        <span class="keyword">if</span> (<span class="function">eh_primo</span>(i)) {
+            contador++;  <span class="error">// Race condition aqui!</span>
+        }
+    }
+    
+    <span class="keyword">return</span> contador;  <span class="comment">// Resultado incorreto</span>
+}
+
+<span class="comment">// ✅ CORRETO - Com Reduction</span>
+<span class="keyword">int</span> <span class="function">contar_primos_correto</span>(<span class="keyword">int</span> n) {
+    <span class="keyword">int</span> contador = <span class="number">0</span>;
+    
+    <span class="pragma">#pragma omp parallel for reduction(+:contador)</span>
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i <= n; i++) {
+        <span class="keyword">if</span> (<span class="function">eh_primo</span>(i)) {
+            contador++;  <span class="success">// Sincronizado automaticamente</span>
+        }
+    }
+    
+    <span class="keyword">return</span> contador;  <span class="comment">// Resultado correto</span>
+}
+
+<span class="comment">// ✅ ALTERNATIVA - Com Critical Section</span>
+<span class="keyword">int</span> <span class="function">contar_primos_critical</span>(<span class="keyword">int</span> n) {
+    <span class="keyword">int</span> contador = <span class="number">0</span>;
+    
+    <span class="pragma">#pragma omp parallel for</span>
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i <= n; i++) {
+        <span class="keyword">if</span> (<span class="function">eh_primo</span>(i)) {
+            <span class="pragma">#pragma omp critical</span>
+            contador++;  <span class="success">// Acesso mutuamente exclusivo</span>
+        }
+    }
+    
+    <span class="keyword">return</span> contador;
+}</pre>
+          </div>
+        </div>
+
+        <h3>2. Comunicação entre Threads</h3>
+        <div class="analysis-section">
+          <h4>Desafios de Comunicação:</h4>
+          <ul>
+            <li><strong>Dados Compartilhados</strong>: Quais variáveis são seguras para compartilhar?</li>
+            <li><strong>Consistência de Cache</strong>: Diferentes cores podem ter caches desatualizados</li>
+            <li><strong>False Sharing</strong>: Threads modificando dados próximos na mesma linha de cache</li>
+            <li><strong>Overhead de Sincronização</strong>: Custo de coordenação entre threads</li>
+          </ul>
+
+          
+
+        <h3>3. Equilíbrio de Carga (Load Balancing)</h3>
+        <div class="analysis-section">
+          <h4>O Problema:</h4>
+          <ul>
+            <li><strong>Distribuição Desigual</strong>: Algumas threads terminam antes que outras</li>
+            <li><strong>Trabalho Variável</strong>: Testar primalidade tem custo diferente para cada número</li>
+            <li><strong>Idle Time</strong>: Threads rápidas ficam esperando as lentas</li>
+          </ul>
+
+          <h4>Estratégias de Balanceamento:</h4>
+          <div class="metrics">
+            <div class="metric-card">
+              <div class="metric-value">STATIC</div>
+              <div class="metric-label">Divisão fixa - pode gerar desbalanceamento</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">DYNAMIC</div>
+              <div class="metric-label">Distribuição dinâmica - melhor balanceamento</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">GUIDED</div>
+              <div class="metric-label">Chunks adaptativos - equilibra overhead e balanceamento</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -462,70 +659,63 @@
         <h2>Conclusões e Lições Aprendidas</h2>
 
         <div class="conclusion-box">
-          <h3>Quando Usar Paralelização</h3>
+          <h3>Lições Críticas sobre Race Conditions</h3>
 
-          <h4 class="success">✅ SIM - Quando:</h4>
+          <h4 class="error">❌ PROBLEMA DEMONSTRADO:</h4>
           <ul>
-            <li>Problema é computacionalmente intensivo</li>
-            <li>Dados são independentes entre iterações</li>
-            <li>Overhead é pequeno comparado ao trabalho</li>
-            <li>n &gt; 100.000 (para este problema específico)</li>
+            <li><strong>Paralelização SEM sincronização = Resultados incorretos</strong></li>
+            <li>Race conditions ocorrem quando múltiplas threads acessam dados compartilhados</li>
+            <li>Operações como <span class="inline-code">contador++</span> NÃO são atômicas</li>
+            <li>Speedup sem correção é completamente inútil</li>
           </ul>
 
-          <h4 class="error">❌ NÃO - Quando:</h4>
+          <h4 class="success">✅ SOLUÇÕES NECESSÁRIAS:</h4>
           <ul>
-            <li>Problema muito pequeno (overhead domina)</li>
-            <li>Dependências entre dados</li>
-            <li>Sincronização frequente necessária</li>
-            <li>Recursos limitados (single-core, memory-bound)</li>
+            <li>Usar <span class="inline-code">reduction(+:contador)</span> para operações de soma</li>
+            <li>Implementar sincronização com mutexes quando necessário</li>
+            <li>Sempre validar correção antes de medir performance</li>
+            <li>Entender que paralelização correta pode ter overhead</li>
           </ul>
         </div>
 
-        <h3>Principais Aprendizados</h3>
+        <h3>Principais Aprendizados - Race Conditions</h3>
         <ol>
           <li>
-            <strong>Overhead é Real</strong>: Paralelização não é sempre
-            benéfica
+            <strong>Race Conditions São Perigosas</strong>: Resultados imprevisíveis e incorretos
           </li>
           <li>
-            <strong>Granularidade Importa</strong>: Muito trabalho fino gera
-            overhead
+            <strong>Sincronização é Obrigatória</strong>: Dados compartilhados precisam de proteção
           </li>
           <li>
-            <strong>Medição é Essencial</strong>: Sempre medir antes de otimizar
+            <strong>Testes de Correção são Críticos</strong>: Sempre validar resultados paralelos
           </li>
           <li>
-            <strong>Correção Primeiro</strong>: Garantir resultado correto antes
-            de otimizar
+            <strong>Operações Atômicas</strong>: <span class="inline-code">contador++</span> não é thread-safe
           </li>
           <li>
-            <strong>Escalabilidade Limitada</strong>: Lei de Amdahl sempre se
-            aplica
+            <strong>Performance vs Correção</strong>: Correção sempre vem primeiro
           </li>
         </ol>
 
         <h3>Conceitos Fundamentais Demonstrados</h3>
         <ul>
           <li>
-            <strong>Paralelização de Loops</strong>:
+            <strong>Paralelização Básica</strong>:
             <span class="inline-code">#pragma omp parallel for</span>
           </li>
           <li>
-            <strong>Operações de Redução</strong>:
-            <span class="inline-code">reduction(+:contador)</span>
+            <strong class="error">Race Conditions</strong>: Problemas de acesso concorrente a dados compartilhados
           </li>
           <li>
-            <strong>Medição Precisa</strong>:
+            <strong>Medição de Tempo</strong>:
             <span class="inline-code">omp_get_wtime()</span>
           </li>
-          <li><strong>Análise de Performance</strong>: Speedup e eficiência</li>
+          <li><strong>Análise de Speedup</strong>: Mesmo com resultados incorretos</li>
           <li>
-            <strong>Overhead Analysis</strong>: Identificação de custos
-            escondidos
+            <strong>Validação de Correção</strong>: Comparação entre versões sequencial e paralela
           </li>
           <li>
-            <strong>Load Balancing</strong>: Distribuição de trabalho entre
-            threads
+            <strong>Overhead Analysis</strong>: Identificação de custos mesmo com race conditions
           </li>
         </ul>
       </section>
@@ -539,17 +729,6 @@
           color: #7f8c8d;
         "
       >
-        <p>
-          <strong>Ambiente de Teste:</strong> 8 threads disponíveis, GCC com
-          flags <span class="inline-code">-fopenmp -O2 -lm</span>, Sistema Linux
-        </p>
-        <p>
-          <em
-            >Este projeto demonstra que programação paralela eficiente requer
-            compreensão profunda dos trade-offs entre overhead, granularidade, e
-            distribuição de carga. Sempre meça antes de otimizar!</em
-          >
-        </p>
       </footer>
     </div>
 
