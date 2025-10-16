@@ -1,237 +1,307 @@
-#include <stdio.h>     
-#include <stdlib.h>    
-#include <omp.h>      
-#include <time.h>      
-#include <unistd.h>   
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+#include <time.h>
+#include <unistd.h>
+
+// ============================================================================
+// ESTRUTURAS DE DADOS
+// ============================================================================
 
 // Estrutura do nó da lista encadeada
 typedef struct Node {
-    int data;          // Dados armazenados no nó
-    struct Node* next; // Ponteiro para o próximo nó
+    int data;
+    struct Node* next;
 } Node;
 
-// Estrutura para representar uma lista com seu lock
+// Estrutura para lista simples (usada com regiões críticas nomeadas)
 typedef struct {
-    Node* head;        // Ponteiro para o primeiro nó da lista
-    omp_lock_t lock;   // Lock exclusivo para esta lista específica
-    int count;         // Contador de elementos na lista
-    int id;           // Identificador único da lista
-} LinkedList;
+    Node* head;
+    int count;
+    int id;
+} SimpleList;
+
+// Estrutura para lista com lock explícito (usada com múltiplas listas)
+typedef struct {
+    Node* head;
+    int count;
+    int id;
+    omp_lock_t lock; // Cada lista tem seu próprio lock independente
+} LockedList;
+
+// ============================================================================
+// FUNÇÕES AUXILIARES
+// ============================================================================
 
 // Função para criar um novo nó
 Node* create_node(int data) {
-    Node* new_node = (Node*)malloc(sizeof(Node)); // Aloca memória para o novo nó
-    if (new_node == NULL) {                        // Verifica se a alocação foi bem-sucedida
+    Node* new_node = (Node*)malloc(sizeof(Node));
+    if (new_node == NULL) {
         fprintf(stderr, "Erro ao alocar memória para novo nó\n");
-        exit(1);                                   // Termina o programa em caso de erro
+        exit(1);
     }
-    new_node->data = data;     // Define o valor do nó
-    new_node->next = NULL;     // Inicializa o ponteiro next como NULL
-    return new_node;           // Retorna o nó criado
+    new_node->data = data;
+    new_node->next = NULL;
+    return new_node;
 }
 
-// Função para inicializar uma lista
-void init_list(LinkedList* list, int id) {
-    list->head = NULL;            // Lista começa vazia
-    list->count = 0;              // Contador inicia em zero
-    list->id = id;                // Define o identificador da lista
-    omp_init_lock(&list->lock);   // Inicializa o lock exclusivo da lista
+// Inicializar lista simples
+void init_simple_list(SimpleList* list, int id) {
+    list->head = NULL;
+    list->count = 0;
+    list->id = id;
 }
 
-// Função para destruir uma lista e liberar memória
-void destroy_list(LinkedList* list) {
-    Node* current = list->head;    // Começa pelo primeiro nó
-    while (current != NULL) {      // Percorre todos os nós
-        Node* temp = current;      // Guarda referência do nó atual
-        current = current->next;   // Avança para o próximo nó
-        free(temp);               // Libera memória do nó atual
+// Inicializar lista com lock
+void init_locked_list(LockedList* list, int id) {
+    list->head = NULL;
+    list->count = 0;
+    list->id = id;
+    omp_init_lock(&list->lock); // Inicializa o lock antes do uso
+}
+
+// Destruir lista simples
+void destroy_simple_list(SimpleList* list) {
+    Node* current = list->head;
+    while (current != NULL) {
+        Node* temp = current;
+        current = current->next;
+        free(temp);
     }
-    omp_destroy_lock(&list->lock); // Destroi o lock da lista
 }
 
-// Função para inserir um elemento na lista (thread-safe)
-void insert_element(LinkedList* list, int data) {
-    Node* new_node = create_node(data);    // Cria o novo nó a ser inserido
-    
-    // Região crítica nomeada para esta lista específica
-    omp_set_lock(&list->lock);             // Adquire lock exclusivo da lista
-    
-    printf("Thread %d inserindo %d na Lista %d\n", 
-           omp_get_thread_num(), data, list->id); // Mostra qual thread está inserindo
-    
-    // Inserção no início da lista para simplicidade
-    new_node->next = list->head;           // Novo nó aponta para o antigo primeiro
-    list->head = new_node;                 // Novo nó torna-se o primeiro
-    list->count++;                         // Incrementa contador de elementos
-    
-    // Simula algum processamento durante a inserção
-    usleep(1000);                          // 1ms de delay para visualizar paralelismo
-    
-    omp_unset_lock(&list->lock);           // Libera o lock da lista
-}
-
-// Função para imprimir os elementos de uma lista
-void print_list(LinkedList* list) {
-    printf("Lista %d (%d elementos): ", list->id, list->count); // Cabeçalho da lista
-    Node* current = list->head;        // Começa pelo primeiro nó
-    while (current != NULL) {          // Percorre todos os nós
-        printf("%d ", current->data);  // Imprime o valor do nó atual
-        current = current->next;       // Avança para o próximo nó
+// Destruir lista com lock
+void destroy_locked_list(LockedList* list) {
+    Node* current = list->head;
+    while (current != NULL) {
+        Node* temp = current;
+        current = current->next;
+        free(temp);
     }
-    printf("\n");                     // Nova linha ao final
+    omp_destroy_lock(&list->lock); // Libera recursos do lock
 }
 
-// Programa com duas listas
-void program_two_lists(int num_insertions, int num_threads) {
-    printf("\n=== PROGRAMA COM DUAS LISTAS ===\n");
-    printf("Número de inserções: %d\n", num_insertions);
-    printf("Número de threads: %d\n\n", num_threads);
+// Imprimir lista simples
+void print_simple_list(SimpleList* list) {
+    printf("Lista %d (%d elementos): ", list->id, list->count);
+    Node* current = list->head;
+    while (current != NULL) {
+        printf("%d ", current->data);
+        current = current->next;
+    }
+    printf("\n");
+}
+
+// Imprimir lista com lock
+void print_locked_list(LockedList* list) {
+    printf("Lista %d (%d elementos): ", list->id, list->count);
+    Node* current = list->head;
+    while (current != NULL) {
+        printf("%d ", current->data);
+        current = current->next;
+    }
+    printf("\n");
+}
+
+// ============================================================================
+// IMPLEMENTAÇÃO COM DUAS LISTAS USANDO REGIÕES CRÍTICAS NOMEADAS
+// ============================================================================
+
+// Variáveis globais para as duas listas (necessário para regiões críticas nomeadas)
+SimpleList global_list1, global_list2;
+
+// Função para inserir na lista 1 usando região crítica nomeada
+void insert_list1_critical(int data) {
+    Node* new_node = create_node(data);
     
-    LinkedList list1, list2;      // Declara duas listas
-    init_list(&list1, 1);         // Inicializa lista 1
-    init_list(&list2, 2);         // Inicializa lista 2
-    
-    double start_time = omp_get_wtime(); // Marca tempo de início
-    
-    #pragma omp parallel num_threads(num_threads)  // Inicia região paralela
+    #pragma omp critical(lista1) // Lock específico para lista1 - permite paralelismo com lista2
     {
-        unsigned int seed = time(NULL) + omp_get_thread_num(); // Seed única por thread
+        new_node->next = global_list1.head;
+        global_list1.head = new_node;
+        global_list1.count++;
         
-        #pragma omp for           // Distribui iterações entre threads
-        for (int i = 0; i < num_insertions; i++) {
-            // Escolhe aleatoriamente entre lista 1 ou 2
-            int choice = rand_r(&seed) % 2;      // 0 ou 1 para escolher lista
-            int value = rand_r(&seed) % 1000;    // Valor aleatório entre 0-999
-            
-            if (choice == 0) {
-                insert_element(&list1, value);   // Insere na lista 1
-            } else {
-                insert_element(&list2, value);   // Insere na lista 2
+        // Simula processamento
+        usleep(1000);
+    }
+}
+
+// Função para inserir na lista 2 usando região crítica nomeada
+void insert_list2_critical(int data) {
+    Node* new_node = create_node(data);
+    
+    #pragma omp critical(lista2) // Lock específico para lista2 - independente de lista1
+    {
+        new_node->next = global_list2.head;
+        global_list2.head = new_node;
+        global_list2.count++;
+        
+        // Simula processamento
+        usleep(1000);
+    }
+}
+
+// Programa principal com duas listas usando regiões críticas nomeadas
+void program_two_lists_named_critical(int num_insertions, int num_threads) {
+    printf("\n=== DUAS LISTAS COM REGIÕES CRÍTICAS NOMEADAS ===\n");
+    printf("Inserções: %d | Threads: %d\n\n", num_insertions, num_threads);
+    
+    // Inicializar as duas listas globais
+    init_simple_list(&global_list1, 1);
+    init_simple_list(&global_list2, 2);
+    
+    double start_time = omp_get_wtime(); // Marca tempo inicial
+    
+    // Região paralela usando TASKS
+    #pragma omp parallel num_threads(num_threads)
+    {
+        #pragma omp single // Apenas uma thread cria as tasks
+        {
+            // Criar tasks para cada inserção
+            for (int i = 0; i < num_insertions; i++) {
+                #pragma omp task firstprivate(i) // Cada task tem sua própria cópia de i
+                {
+                    unsigned int local_seed = time(NULL) + omp_get_thread_num() + i; // Seed único por task
+                    
+                    // Escolha aleatória entre lista 1 ou 2
+                    int choice = rand_r(&local_seed) % 2; // rand_r é thread-safe
+                    int value = rand_r(&local_seed) % 1000;
+                    
+                    if (choice == 0) {
+                        insert_list1_critical(value);
+                    } else {
+                        insert_list2_critical(value);
+                    }
+                }
             }
         }
+        // Todas as tasks terminam aqui automaticamente (taskwait implícito)
     }
     
-    double end_time = omp_get_wtime();           // Marca tempo de fim
+    double end_time = omp_get_wtime();
     
     printf("\nResultados após %d inserções:\n", num_insertions);
-    print_list(&list1);                         // Mostra conteúdo da lista 1
-    print_list(&list2);                         // Mostra conteúdo da lista 2
-    printf("Tempo total: %.4f segundos\n", end_time - start_time); // Calcula tempo decorrido
-    printf("Total de elementos: %d\n", list1.count + list2.count); // Soma total de elementos
+    print_simple_list(&global_list1);
+    print_simple_list(&global_list2);
+    printf("Tempo total: %.4f segundos\n", end_time - start_time);
+    printf("Total de elementos: %d\n", global_list1.count + global_list2.count);
     
-    destroy_list(&list1);                       // Libera memória da lista 1
-    destroy_list(&list2);                       // Libera memória da lista 2
+    destroy_simple_list(&global_list1);
+    destroy_simple_list(&global_list2);
 }
 
-// Programa generalizado para N listas
-void program_n_lists(int num_lists, int num_insertions, int num_threads) {
-    printf("\n=== PROGRAMA COM %d LISTAS ===\n", num_lists);
-    printf("Número de inserções: %d\n", num_insertions);
-    printf("Número de threads: %d\n\n", num_threads);
+// IMPLEMENTAÇÃO GENERALIZADA COM N LISTAS USANDO LOCKS EXPLÍCITOS
+
+// Função para inserir em lista com lock explícito
+void insert_locked_list(LockedList* list, int data) {
+    Node* new_node = create_node(data);
     
-    // Aloca memória para array de listas dinamicamente
-    LinkedList* lists = (LinkedList*)malloc(num_lists * sizeof(LinkedList));
-    if (lists == NULL) {                       // Verifica se alocação foi bem-sucedida
+    omp_set_lock(&list->lock); // Adquire lock específico desta lista
+    {
+        new_node->next = list->head;
+        list->head = new_node;
+        list->count++;
+        
+        // Simula processamento
+        usleep(1000);
+    }
+    omp_unset_lock(&list->lock); // Libera lock específico desta lista
+}
+
+// Programa generalizado para N listas usando locks explícitos
+void program_n_lists_explicit_locks(int num_lists, int num_insertions, int num_threads) {
+    printf("\n=== %d LISTAS COM LOCKS EXPLÍCITOS ===\n", num_lists);
+    printf("Inserções: %d | Threads: %d\n\n", num_insertions, num_threads);
+    
+    // Aloca memória para array de listas
+    LockedList* lists = (LockedList*)malloc(num_lists * sizeof(LockedList)); // Alocação dinâmica para N listas
+    if (lists == NULL) {
         fprintf(stderr, "Erro ao alocar memória para as listas\n");
-        exit(1);                               // Termina programa em caso de erro
+        exit(1);
     }
     
     // Inicializa todas as listas
     for (int i = 0; i < num_lists; i++) {
-        init_list(&lists[i], i + 1);           // Cada lista tem ID sequencial (1, 2, 3...)
+        init_locked_list(&lists[i], i + 1); // Cada lista recebe seu próprio lock
     }
     
-    double start_time = omp_get_wtime();       // Marca tempo de início
+    double start_time = omp_get_wtime(); // Marca tempo inicial
     
-    #pragma omp parallel num_threads(num_threads)  // Inicia região paralela
+    // Região paralela usando TASKS
+    #pragma omp parallel num_threads(num_threads)
     {
-        unsigned int seed = time(NULL) + omp_get_thread_num(); // Seed única por thread
-        
-        #pragma omp for                        // Distribui iterações entre threads
-        for (int i = 0; i < num_insertions; i++) {
-            // Escolhe aleatoriamente uma das N listas
-            int list_choice = rand_r(&seed) % num_lists;    // Índice da lista escolhida
-            int value = rand_r(&seed) % 1000;               // Valor aleatório entre 0-999
-            
-            insert_element(&lists[list_choice], value);     // Insere na lista escolhida
+        #pragma omp single // Apenas uma thread cria as tasks
+        {
+            // Criar tasks para cada inserção
+            for (int i = 0; i < num_insertions; i++) {
+                #pragma omp task firstprivate(i, lists, num_lists) // Cada task tem cópias privadas
+                {
+                    unsigned int local_seed = time(NULL) + omp_get_thread_num() + i; // Seed único por task
+                    
+                    // Escolha aleatória entre as N listas
+                    int list_choice = rand_r(&local_seed) % num_lists; // Escolha dinâmica entre N listas
+                    int value = rand_r(&local_seed) % 1000;
+                    
+                    insert_locked_list(&lists[list_choice], value); // Acesso direto por índice
+                }
+            }
         }
+        // Todas as tasks terminam aqui automaticamente (taskwait implícito)
     }
     
-    double end_time = omp_get_wtime();         // Marca tempo de fim
+    double end_time = omp_get_wtime();
     
     printf("\nResultados após %d inserções em %d listas:\n", num_insertions, num_lists);
-    int total_elements = 0;                    // Contador total de elementos
+    int total_elements = 0;
     for (int i = 0; i < num_lists; i++) {
-        print_list(&lists[i]);                 // Mostra conteúdo de cada lista
-        total_elements += lists[i].count;      // Soma elementos de todas as listas
+        print_locked_list(&lists[i]);
+        total_elements += lists[i].count;
     }
     
-    printf("Tempo total: %.4f segundos\n", end_time - start_time); // Calcula tempo decorrido
-    printf("Total de elementos: %d\n", total_elements);            // Mostra total de elementos
+    printf("Tempo total: %.4f segundos\n", end_time - start_time);
+    printf("Total de elementos: %d\n", total_elements);
     
     // Libera memória das listas
     for (int i = 0; i < num_lists; i++) {
-        destroy_list(&lists[i]);               // Destroi cada lista individualmente
+        destroy_locked_list(&lists[i]); // Destrói lock e libera nós de cada lista
     }
-    free(lists);                              // Libera array de listas
+    free(lists); // Libera array de listas
 }
 
 int main() {
-    printf("TAREFA 9: Regiões críticas nomeadas e Locks explícitos\n");
+    printf("TAREFA 9: Regiões Críticas Nomeadas vs Locks Explícitos\n");
+    printf("========================================================\n");
     
-    srand(time(NULL));                         // Inicializa gerador de números aleatórios
+    srand(time(NULL)); // Inicializa gerador de números aleatórios
     
-    // Teste interativo para que o usuário defina o número de listas
-    printf("\n=== TESTE INTERATIVO ===\n");
-    int num_lists, num_insertions, num_threads; // Variáveis para entrada do usuário
+    int num_insertions, num_threads, num_lists;
     
-    printf("Digite o número de listas: ");
-    if (scanf("%d", &num_lists) != 1 || num_lists < 1) { // Lê e valida número de listas
-        fprintf(stderr, "Número de listas inválido\n");
-        return 1;                              // Retorna erro se entrada inválida
-    }
-    
-    printf("Digite o número de inserções: ");
-    if (scanf("%d", &num_insertions) != 1 || num_insertions < 1) { // Lê e valida número de inserções
+    // Entrada do usuário
+    printf("\nDigite o número de inserções: ");
+    if (scanf("%d", &num_insertions) != 1 || num_insertions < 1) {
         fprintf(stderr, "Número de inserções inválido\n");
-        return 1;                              // Retorna erro se entrada inválida
+        return 1;
     }
     
     printf("Digite o número de threads: ");
-    if (scanf("%d", &num_threads) != 1 || num_threads < 1) { // Lê e valida número de threads
+    if (scanf("%d", &num_threads) != 1 || num_threads < 1) {
         fprintf(stderr, "Número de threads inválido\n");
-        return 1;                              // Retorna erro se entrada inválida
+        return 1;
     }
     
-    program_n_lists(num_lists, num_insertions, num_threads); // Executa programa principal
+    // Demonstração com 2 listas usando regiões críticas nomeadas
+    program_two_lists_named_critical(num_insertions, num_threads); // Primeira abordagem: limitada a 2 listas
+    
+    // Entrada para número de listas
+    printf("\nDigite o número de listas para a versão generalizada: ");
+    if (scanf("%d", &num_lists) != 1 || num_lists < 1) {
+        fprintf(stderr, "Número de listas inválido\n");
+        return 1;
+    }
+    
+    // Demonstração com N listas usando locks explícitos
+    program_n_lists_explicit_locks(num_lists, num_insertions, num_threads); // Segunda abordagem: escalável para N listas
     
     printf("\nPrograma concluído com sucesso!\n");
-    return 0;                                  // Retorna sucesso
+    return 0;
 }
 
-/*
-INSTRUÇÕES DE COMPILAÇÃO E EXECUÇÃO
-
-COMPILAÇÃO:
------------
-Para compilar o programa, use o seguinte comando:
-
-    gcc -fopenmp -o tarefa9 tarefa9.c -Wall
-
-EXECUÇÃO:
----------
-Para executar o programa:
-
-    ./tarefa9
-
-O programa irá:
-1. Solicitar entrada do usuário para teste personalizado
-
-EXEMPLO DE EXECUÇÃO COM ENTRADA AUTOMÁTICA:
-------------------------------------------
-Para fornecer entrada automaticamente:
-
-    echo -e "3\n75\n4" | ./tarefa9
-
-Isso executará com 3 listas, 75 inserções e 4 threads.
-*/
