@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefa 7 - Processamento Paralelo com Tasks e Lista Encadeada</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            text-align: center;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        h3 {
+            color: #2980b9;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        .code-block {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 0.9em;
+            white-space: pre;
+            line-height: 1.4;
+        }
+
+        .output-block {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .task-start {
+            color: #48bb78;
+            font-weight: bold;
+        }
+
+        .task-end {
+            color: #38b2ac;
+            font-weight: bold;
+        }
+
+        .thread-work {
+            color: #90cdf4;
+        }
+
+        .master-thread {
+            color: #f6e05e;
+            font-weight: bold;
+        }
+
+        .system-message {
+            color: #fc8181;
+            font-weight: bold;
+        }
+
+        .header-message {
+            color: #a78bfa;
+            font-weight: bold;
+        }
+
+        .info-message {
+            color: #68d391;
+        }
+
+        .inline-code {
+            background-color: #f1f1f1;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+            font-size: 0.9em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        .scientists-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .scientist-item {
+            background-color: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .scientists-list {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tarefa 7 - Processamento Paralelo com Tasks e Lista Encadeada</h1>
+
+        <h2>Descrição</h2>
+        <p>Este programa demonstra o uso de <strong>OpenMP Tasks</strong> para processamento paralelo de uma lista encadeada. O programa cria uma lista de arquivos fictícios (nomeados com sobrenomes de cientistas famosos) e utiliza tasks para processar cada arquivo de forma paralela e assíncrona.</p>
+
+        <h3>Funcionalidades</h3>
+        <ul>
+            <li><strong>Lista Encadeada</strong>: Estrutura de dados dinâmica contendo nomes de arquivos</li>
+            <li><strong>OpenMP Tasks</strong>: Criação de tarefas paralelas para processamento assíncrono</li>
+            <li><strong>Distribuição Dinâmica</strong>: Tasks são distribuídas automaticamente entre threads disponíveis</li>
+            <li><strong>Sincronização Explícita</strong>: Uso de <span class="inline-code">barrier</span>, <span class="inline-code">taskwait</span>, <span class="inline-code">single</span> e <span class="inline-code">master</span></li>
+            <li><strong>Gerenciamento de Memória</strong>: Liberação adequada da memória alocada</li>
+        </ul>
+        <h2>O que são Tasks em OpenMP?</h2>
+        
+        <h3>Conceito Fundamental</h3>
+        <p>Em OpenMP, <strong>tasks</strong> são unidades independentes de trabalho que podem ser executadas de forma assíncrona por qualquer thread disponível em uma região paralela. Diferentemente dos loops paralelos tradicionais (<span class="inline-code">#pragma omp for</span>), que dividem iterações de forma estruturada, as tasks oferecem um modelo de paralelismo mais flexível e dinâmico.</p>
+
+        <h3>Características das Tasks</h3>
+        <ul>
+            <li><strong>Criação Dinâmica</strong>: Tasks podem ser criadas em tempo de execução, permitindo estruturas de dados irregulares</li>
+            <li><strong>Execução Assíncrona</strong>: Não há ordem garantida de execução entre tasks</li>
+            <li><strong>Escalonamento Automático</strong>: O runtime OpenMP distribui tasks automaticamente entre threads disponíveis</li>
+            <li><strong>Work Stealing</strong>: Threads ociosas podem "roubar" tasks de outras threads ocupadas</li>
+            <li><strong>Aninhamento</strong>: Tasks podem criar outras tasks, formando hierarquias complexas</li>
+        </ul>
+
+        <h3>Modelo de Execução</h3>
+        <p>O modelo de tasks em OpenMP funciona como um sistema de produtor-consumidor:</p>
+        <ol>
+            <li><strong>Produção</strong>: Uma ou mais threads criam tasks e as colocam em uma fila</li>
+            <li><strong>Consumo</strong>: Threads disponíveis retiram tasks da fila e as executam</li>
+            <li><strong>Balanceamento</strong>: O runtime redistribui automaticamente a carga de trabalho</li>
+        </ol>
+
+        <h3>Quando Usar Tasks</h3>
+        <ul>
+            <li>Processamento de <strong>listas encadeadas</strong>, árvores ou grafos</li>
+            <li>Algoritmos <strong>divide-and-conquer</strong> (como quicksort recursivo)</li>
+            <li>Cargas de trabalho <strong>irregulares</strong> ou imprevisíveis</li>
+            <li>Situações onde o número de <strong>trabalhos é desconhecido</strong> em tempo de compilação</li>
+        </ul>
+
+        <h2>Vantagens das Tasks</h2>
+
+        <h3>1. Balanceamento Dinâmico</h3>
+        <ul>
+            <li>Tasks são distribuídas automaticamente</li>
+            <li>Threads ociosas pegam novas tasks</li>
+            <li>Melhor utilização de recursos</li>
+        </ul>
+
+        <h3>2. Flexibilidade</h3>
+        <ul>
+            <li>Número variável de tasks</li>
+            <li>Criação condicional de tasks</li>
+            <li>Aninhamento de tasks possível</li>
+        </ul>
+
+        <h3>3. Desacoplamento</h3>
+        <ul>
+            <li>Criação e execução são independentes</li>
+            <li>Uma thread cria, outras executam</li>
+            <li>Escalabilidade natural</li>
+        </ul>
+        <h2>Conceitos Demonstrados</h2>
+
+        <h3>1. OpenMP Tasks</h3>
+        <div class="code-block">#pragma omp task firstprivate(nome_local, task_id)
+{
+    int thread_executora = omp_get_thread_num();
+    processar_arquivo(nome_local, thread_executora, task_id);
+}</div>
+
+        <h3>2. Diretiva Single</h3>
+        <div class="code-block">#pragma omp single
+{
+    // Apenas uma thread cria todas as tasks
+    // Evita duplicação de trabalho
+}</div>
+
+        <h3>3. Diretiva Master</h3>
+        <div class="code-block">#pragma omp master
+{
+    // Executado apenas pela thread master (ID 0)
+    // Usado para inicialização e finalização
+}</div>
+
+        <h3>4. Barreira de Sincronização</h3>
+        <div class="code-block">#pragma omp barrier
+{
+    // Todas as threads esperam aqui
+    // Garante sincronização entre threads
+}</div>
+
+        <h3>5. Task Wait</h3>
+        <div class="code-block">#pragma omp taskwait
+{
+    // Espera todas as tasks criadas pela thread atual
+    // Sincronização explícita de tasks
+}</div>
+
+        <h2>Estrutura do Programa</h2>
+
+        <h3>Lista Encadeada</h3>
+        <div class="code-block">typedef struct No {
+    char nome_arquivo[50];
+    struct No* proximo;
+} No;</div>
+
+        <h3>Arquivos de Cientistas Famosos</h3>
+        <div class="scientists-list">
+            <div class="scientist-item">Einstein.txt</div>
+            <div class="scientist-item">Newton.txt</div>
+            <div class="scientist-item">Darwin.txt</div>
+            <div class="scientist-item">Curie.txt</div>
+            <div class="scientist-item">Tesla.txt</div>
+            <div class="scientist-item">Hawking.txt</div>
+            <div class="scientist-item">Turing.txt</div>
+            <div class="scientist-item">Galileo.txt</div>
+            <div class="scientist-item">Mendel.txt</div>
+            <div class="scientist-item">Pascal.txt</div>
+        </div>
+
+        <h2>Fluxo de Execução</h2>
+        <ol>
+            <li><strong>Criação da Lista</strong>: Adiciona 10 arquivos fictícios à lista encadeada</li>
+            <li><strong>Região Paralela</strong>: Inicia região paralela com múltiplas threads</li>
+            <li><strong>Inicialização Master</strong>: Thread master (ID 0) executa inicialização</li>
+            <li><strong>Barreira Inicial</strong>: Todas as threads sincronizam antes do processamento</li>
+            <li><strong>Criação de Tasks</strong>: Uma única thread percorre a lista e cria tasks</li>
+            <li><strong>Processamento Paralelo</strong>: Tasks são executadas por diferentes threads</li>
+            <li><strong>Task Wait</strong>: Aguarda explicitamente todas as tasks terminarem</li>
+            <li><strong>Barreira Final</strong>: Sincronização após conclusão das tasks</li>
+            <li><strong>Finalização Master</strong>: Thread master executa limpeza final</li>
+            <li><strong>Limpeza</strong>: Libera memória da lista encadeada</li>
+        </ol>
+
+        <h2>Análise de Performance</h2>
+
+        <h3>Características Observadas</h3>
+        <ul>
+            <li><strong>Distribuição Não-Determinística</strong>: A cada execução, tasks podem ser executadas por threads diferentes</li>
+            <li><strong>Utilização Eficiente</strong>: Múltiplas threads trabalham simultaneamente</li>
+            <li><strong>Overhead Mínimo</strong>: Tasks são criadas rapidamente com sincronização eficiente</li>
+        </ul>
+
+        <h3>Conceitos de Programação Paralela</h3>
+        <ul>
+            <li><strong>Task Parallelism</strong>: Diferentes threads executam diferentes tarefas</li>
+            <li><strong>Work Stealing</strong>: OpenMP implementa algoritmo de work stealing</li>
+            <li><strong>Fork-Join Estendido</strong>: Tasks estendem o modelo fork-join tradicional</li>
+        </ul>
+        <h2>Comandos OpenMP Utilizados</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Comando</th>
+                    <th>Função</th>
+                    <th>Uso no Programa</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="inline-code">#pragma omp single</span></td>
+                    <td>Execução por apenas uma thread</td>
+                    <td>Criação de tasks (evita duplicação)</td>
+                </tr>
+                <tr>
+                    <td><span class="inline-code">#pragma omp master</span></td>
+                    <td>Execução pela thread master (ID 0)</td>
+                    <td>Inicialização e finalização do sistema</td>
+                </tr>
+                <tr>
+                    <td><span class="inline-code">#pragma omp barrier</span></td>
+                    <td>Sincronização de todas as threads</td>
+                    <td>Pontos de sincronização no fluxo</td>
+                </tr>
+                <tr>
+                    <td><span class="inline-code">#pragma omp task</span></td>
+                    <td>Criação de tarefas assíncronas</td>
+                    <td>Processamento paralelo dos arquivos</td>
+                </tr>
+                <tr>
+                    <td><span class="inline-code">#pragma omp taskwait</span></td>
+                    <td>Aguardar conclusão das tasks</td>
+                    <td>Sincronização explícita das tasks</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Discussão dos Comandos OpenMP</h2>
+
+        <h3>Diretiva <span class="inline-code">#pragma omp task</span></h3>
+        <p>A diretiva <span class="inline-code">#pragma omp task</span> é o coração do modelo de tasks em OpenMP. Ela encapsula uma unidade de trabalho que pode ser executada assincronamente por qualquer thread disponível.</p>
+
+        <div class="code-block">#pragma omp task [cláusulas]
+{
+    // Bloco de código da task
+    // Executado de forma assíncrona
+}</div>
+
+        <h4>Principais Cláusulas da Diretiva Task:</h4>
+        <ul>
+            <li><span class="inline-code">firstprivate(var)</span>: Copia o valor da variável para cada task</li>
+            <li><span class="inline-code">private(var)</span>: Cada task tem sua própria cópia da variável</li>
+            <li><span class="inline-code">shared(var)</span>: Variável compartilhada entre todas as tasks</li>
+            <li><span class="inline-code">if(condição)</span>: Task só é criada se a condição for verdadeira</li>
+            <li><span class="inline-code">priority(n)</span>: Define prioridade de execução da task</li>
+        </ul>
+
+        <h4>⚠️ Importância Crítica do <span class="inline-code">firstprivate</span>:</h4>
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; margin: 15px 0;">
+            <h5 style="color: #856404; margin-top: 0;">🚨 Por que <span class="inline-code">firstprivate</span> é ESSENCIAL:</h5>
+            
+            <p style="color: #856404;"><strong>Sem <span class="inline-code">firstprivate</span>:</strong> Todas as tasks compartilhariam as MESMAS variáveis, causando race conditions graves:</p>
+            <ul style="color: #856404;">
+                <li>❌ <strong>Valores incorretos:</strong> Tasks podem ver dados de outras iterações (ex: todas processariam "Pascal.txt")</li>
+                <li>❌ <strong>IDs inconsistentes:</strong> Tasks teriam IDs duplicados ou incorretos</li>
+                <li>❌ <strong>Resultados imprevisíveis:</strong> Bugs difíceis de detectar e reproduzir</li>
+                <li>❌ <strong>Race conditions:</strong> Comportamento não-determinístico perigoso</li>
+            </ul>
+            
+            <p style="color: #856404;"><strong>Com <span class="inline-code">firstprivate(nome_local, task_id)</span>:</strong></p>
+            <ul style="color: #856404;">
+                <li>✅ <strong>Cópia individual:</strong> Cada task recebe sua PRÓPRIA CÓPIA dos valores atuais</li>
+                <li>✅ <strong>Valores "congelados":</strong> Dados são capturados no momento da criação da task</li>
+                <li>✅ <strong>Eliminação de race conditions:</strong> Completamente seguro para execução paralela</li>
+                <li>✅ <strong>Processamento correto:</strong> Garante que cada task processe o arquivo correto</li>
+            </ul>
+        </div>
+
+        <h4>Ciclo de Vida de uma Task:</h4>
+        <ol>
+            <li><strong>Criação</strong>: Task é criada e colocada na fila do runtime</li>
+            <li><strong>Escalonamento</strong>: Runtime escolhe uma thread para executar</li>
+            <li><strong>Execução</strong>: Thread executa o código da task</li>
+            <li><strong>Finalização</strong>: Task é marcada como concluída</li>
+        </ol>
+
+        <h3>Diretiva <span class="inline-code">#pragma omp taskwait</span></h3>
+        <p>A diretiva <span class="inline-code">#pragma omp taskwait</span> fornece um ponto de sincronização onde a thread atual aguarda a conclusão de todas as tasks que ela criou (tasks filhas). É essencial para garantir que trabalho dependente só execute após tasks anteriores terminarem.</p>
+
+        <div class="code-block">#pragma omp parallel
+{
+    #pragma omp single
+    {
+        for (int i = 0; i < n; i++) {
+            #pragma omp task
+            {
+                processar_elemento(i);
+            }
+        }
+        
+        #pragma omp taskwait  // Espera todas as tasks terminarem
+        
+        printf("Todas as tasks concluídas!\n");
+    }
+}</div>
+
+        <h4>Comportamento do <span class="inline-code">taskwait</span>:</h4>
+        <ul>
+            <li><strong>Escopo Local</strong>: Só aguarda tasks criadas pela thread atual</li>
+            <li><strong>Execução Ativa</strong>: A thread pode executar outras tasks enquanto espera</li>
+            <li><strong>Recursivo</strong>: Também aguarda tasks criadas pelas tasks filhas</li>
+            <li><strong>Implícito</strong>: Ocorre automaticamente no final de regiões paralelas</li>
+        </ul>
+
+        <h4>Diferença entre <span class="inline-code">taskwait</span> e <span class="inline-code">barrier</span>:</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Aspecto</th>
+                    <th><span class="inline-code">taskwait</span></th>
+                    <th><span class="inline-code">barrier</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Escopo</strong></td>
+                    <td>Tasks da thread atual</td>
+                    <td>Todas as threads</td>
+                </tr>
+                <tr>
+                    <td><strong>Granularidade</strong></td>
+                    <td>Nível de task</td>
+                    <td>Nível de thread</td>
+                </tr>
+                <tr>
+                    <td><strong>Atividade</strong></td>
+                    <td>Pode executar outras tasks</td>
+                    <td>Bloqueia completamente</td>
+                </tr>
+                <tr>
+                    <td><strong>Uso Típico</strong></td>
+                    <td>Sincronização de tasks</td>
+                    <td>Sincronização de threads</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>Exemplo Prático - Combinação dos Três Conceitos:</h4>
+        <div class="code-block">#pragma omp parallel
+{
+    #pragma omp for nowait  // Sem barreira implícita
+    for (int i = 0; i < primeira_fase; i++) {
+        preparar_dados(i);
+    }
+    
+    #pragma omp single
+    {
+        for (int j = 0; j < segunda_fase; j++) {
+            #pragma omp task firstprivate(j)
+            {
+                processar_complexo(j);
+            }
+        }
+        
+        #pragma omp taskwait  // Aguarda todas as tasks
+    }
+    
+    #pragma omp barrier  // Sincroniza todas as threads
+    
+    // Código que precisa de todas as threads sincronizadas
+}</div>
+
+        <h3>Cláusula <span class="inline-code">nowait</span></h3>
+        <p>A cláusula <span class="inline-code">nowait</span> é uma otimização importante que remove a barreira implícita no final de construções paralelas. Normalmente, construções como <span class="inline-code">#pragma omp for</span> ou <span class="inline-code">#pragma omp single</span> incluem uma barreira implícita que força todas as threads a aguardarem até que a última termine.</p>
+        
+        <div class="code-block">// Sem nowait - barreira implícita
+#pragma omp for
+for (int i = 0; i < n; i++) {
+    trabalho_rapido(i);
+}
+// Todas as threads esperam aqui
+
+// Com nowait - sem barreira
+#pragma omp for nowait
+for (int i = 0; i < n; i++) {
+    trabalho_rapido(i);
+}
+// Threads continuam imediatamente</div>
+
+        <h4>Quando Usar <span class="inline-code">nowait</span>:</h4>
+        <ul>
+            <li>Quando threads terminam em tempos muito diferentes</li>
+            <li>Para permitir que threads rápidas comecem o próximo trabalho</li>
+            <li>Em pipelines onde o trabalho pode ser sobreposto</li>
+            <li><strong>Cuidado</strong>: Pode causar condições de corrida se não usado corretamente</li>
+        </ul>
+
+        <h2>Exemplo de Saída</h2>
+        <div class="output-block"><span class="header-message">=== PROCESSAMENTO PARALELO DE ARQUIVOS COM TASKS ===</span>
+<span class="info-message">Criando lista de arquivos fictícios...</span>
+
+<span class="info-message">Número de threads disponíveis: 8</span>
+<span class="info-message">Iniciando processamento paralelo...</span>
+
+<span class="master-thread">Thread master 0 inicializando sistema...</span>
+<span class="system-message">Thread 7 criando tasks para processamento...</span>
+
+<span class="task-start">==> Task 1 iniciada na Thread 1: Einstein.txt</span>
+<span class="thread-work">  -> Thread 1: Analisando conteúdo de Einstein.txt...</span>
+
+<span class="task-start">==> Task 2 iniciada na Thread 4: Newton.txt</span>
+<span class="thread-work">  -> Thread 4: Analisando conteúdo de Newton.txt...</span>
+
+<span class="task-start">==> Task 3 iniciada na Thread 5: Darwin.txt</span>
+<span class="thread-work">  -> Thread 5: Analisando conteúdo de Darwin.txt...</span>
+
+<span class="task-start">==> Task 4 iniciada na Thread 0: Curie.txt</span>
+<span class="thread-work">  -> Thread 0: Analisando conteúdo de Curie.txt...</span>
+
+<span class="task-start">==> Task 5 iniciada na Thread 2: Tesla.txt</span>
+<span class="thread-work">  -> Thread 2: Analisando conteúdo de Tesla.txt...</span>
+
+<span class="system-message">Todas as 10 tasks foram criadas!</span>
+<span class="system-message">Aguardando conclusão de todas as tasks...</span>
+
+<span class="task-start">==> Task 8 iniciada na Thread 7: Galileo.txt</span>
+<span class="thread-work">  -> Thread 7: Analisando conteúdo de Galileo.txt...</span>
+
+<span class="task-start">==> Task 6 iniciada na Thread 6: Hawking.txt</span>
+<span class="thread-work">  -> Thread 6: Analisando conteúdo de Hawking.txt...</span>
+
+<span class="thread-work">  -> Thread 5: Processamento de Darwin.txt concluído!</span>
+<span class="task-end">==> Task 3 finalizada na Thread 5</span>
+
+<span class="thread-work">  -> Thread 4: Processamento de Newton.txt concluído!</span>
+<span class="task-end">==> Task 2 finalizada na Thread 4</span>
+
+<span class="thread-work">  -> Thread 0: Processamento de Curie.txt concluído!</span>
+<span class="task-end">==> Task 4 finalizada na Thread 0</span>
+
+<span class="task-start">==> Task 10 iniciada na Thread 4: Pascal.txt</span>
+<span class="thread-work">  -> Thread 4: Analisando conteúdo de Pascal.txt...</span>
+
+<span class="task-start">==> Task 9 iniciada na Thread 5: Mendel.txt</span>
+<span class="thread-work">  -> Thread 5: Analisando conteúdo de Mendel.txt...</span>
+
+<span class="thread-work">  -> Thread 1: Processamento de Einstein.txt concluído!</span>
+<span class="task-end">==> Task 1 finalizada na Thread 1</span>
+
+<span class="thread-work">  -> Thread 2: Processamento de Tesla.txt concluído!</span>
+<span class="task-end">==> Task 5 finalizada na Thread 2</span>
+
+<span class="thread-work">  -> Thread 4: Processamento de Pascal.txt concluído!</span>
+<span class="task-end">==> Task 10 finalizada na Thread 4</span>
+
+<span class="thread-work">  -> Thread 5: Processamento de Mendel.txt concluído!</span>
+<span class="task-end">==> Task 9 finalizada na Thread 5</span>
+
+<span class="thread-work">  -> Thread 6: Processamento de Hawking.txt concluído!</span>
+<span class="task-end">==> Task 6 finalizada na Thread 6</span>
+
+<span class="thread-work">  -> Thread 7: Processamento de Galileo.txt concluído!</span>
+<span class="task-end">==> Task 8 finalizada na Thread 7</span>
+
+<span class="task-start">==> Task 7 iniciada na Thread 3: Turing.txt</span>
+<span class="thread-work">  -> Thread 3: Analisando conteúdo de Turing.txt...</span>
+
+<span class="thread-work">  -> Thread 3: Processamento de Turing.txt concluído!</span>
+<span class="task-end">==> Task 7 finalizada na Thread 3</span>
+
+<span class="master-thread">Thread master 0 finalizando processamento...</span>
+
+<span class="header-message">=== PROCESSAMENTO CONCLUÍDO ===</span>
+<span class="info-message">Todos os arquivos foram processados com sucesso!</span></div>
+
+
+        <h2>Comparação: Tasks vs Parallel For</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Aspecto</th>
+                    <th>Tasks</th>
+                    <th>Parallel For</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Estrutura de Dados</strong></td>
+                    <td>Qualquer (lista, árvore)</td>
+                    <td>Arrays/loops</td>
+                </tr>
+                <tr>
+                    <td><strong>Balanceamento</strong></td>
+                    <td>Dinâmico automático</td>
+                    <td>Estático/manual</td>
+                </tr>
+                <tr>
+                    <td><strong>Flexibilidade</strong></td>
+                    <td>Alta</td>
+                    <td>Limitada</td>
+                </tr>
+                <tr>
+                    <td><strong>Overhead</strong></td>
+                    <td>Ligeiramente maior</td>
+                    <td>Menor</td>
+                </tr>
+                <tr>
+                    <td><strong>Casos de Uso</strong></td>
+                    <td>Trabalho irregular</td>
+                    <td>Trabalho uniforme</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>Conclusão:</strong> Este programa demonstra como os 5 comandos OpenMP fundamentais (<span class="inline-code">single</span>, <span class="inline-code">master</span>, <span class="inline-code">barrier</span>, <span class="inline-code">task</span>, <span class="inline-code">taskwait</span>) trabalham em conjunto para criar um sistema de processamento paralelo robusto e bem sincronizado.</p>
+
+        <h2>Reflexão e Análise Crítica</h2>
+
+        <h3>🤔 Questões para Reflexão</h3>
+        <p>Após executar o programa, é importante refletir sobre alguns aspectos fundamentais do comportamento das OpenMP Tasks:</p>
+
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; margin: 15px 0;">
+            <h4 style="color: #856404; margin-top: 0;">❓ Perguntas Críticas:</h4>
+            <ul style="color: #856404;">
+                <li><strong>Todos os nós foram processados?</strong></li>
+                <li><strong>Algum foi processado mais de uma vez ou ignorado?</strong></li>
+                <li><strong>O comportamento muda entre execuções?</strong></li>
+                <li><strong>Como garantir que cada nó seja processado uma única vez e por apenas uma tarefa?</strong></li>
+            </ul>
+        </div>
+
+        <h3>🔍 Análise do Comportamento Observado</h3>
+
+        <h4>1. Processamento Completo dos Nós</h4>
+        <p><strong>✅ Resposta:</strong> Sim, todos os 10 nós da lista encadeada foram processados corretamente. Isso é garantido porque:</p>
+        <ul>
+            <li>A diretiva <span class="inline-code">#pragma omp single</span> assegura que <strong>apenas uma thread</strong> percorre a lista</li>
+            <li>O loop <span class="inline-code">while (atual != NULL)</span> percorre <strong>sequencialmente todos os nós</strong></li>
+            <li>Cada nó gera <strong>exatamente uma task</strong> antes de avançar para o próximo</li>
+        </ul>
+
+        <h4>2. Processamento Único (Sem Duplicação)</h4>
+        <p><strong>✅ Resposta:</strong> Nenhum nó foi processado mais de uma vez nem ignorado. Isso ocorre porque:</p>
+        <ul>
+            <li><strong>Criação sequencial:</strong> A thread dentro do <span class="inline-code">single</span> cria tasks uma por vez</li>
+            <li><strong>Cópia de dados:</strong> <span class="inline-code">firstprivate(nome_local, task_id)</span> captura valores únicos para cada task</li>
+            <li><strong>Sincronização:</strong> <span class="inline-code">#pragma omp taskwait</span> garante que todas as tasks terminem</li>
+        </ul>
+
+        <h4>3. Variabilidade Entre Execuções</h4>
+        <p><strong>⚠️ Resposta:</strong> Sim, o comportamento muda entre execuções, mas apenas na <strong>ordem de execução:</strong></p>
+        
+        <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 4px; margin: 15px 0;">
+            <h5 style="color: #0c5460; margin-top: 0;">🔄 Aspectos que Variam:</h5>
+            <ul style="color: #0c5460;">
+                <li><strong>Ordem de início:</strong> Tasks podem começar em ordens diferentes</li>
+                <li><strong>Distribuição de threads:</strong> Diferentes threads podem executar diferentes tasks</li>
+                <li><strong>Tempos de conclusão:</strong> Tasks podem terminar em ordens variadas</li>
+            </ul>
+        </div>
+
+        <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 4px; margin: 15px 0;">
+            <h5 style="color: #155724; margin-top: 0;">✅ Aspectos que NÃO Variam:</h5>
+            <ul style="color: #155724;">
+                <li><strong>Número total de tasks:</strong> Sempre 10 tasks (uma por nó)</li>
+                <li><strong>Conteúdo processado:</strong> Todos os arquivos são sempre processados</li>
+                <li><strong>Integridade dos dados:</strong> Nenhum dado é perdido ou duplicado</li>
+            </ul>
+        </div>
+
+        <h3>🛡️ Garantias de Processamento Único</h3>
+
+        <h4>Mecanismos Implementados no Código:</h4>
+        <ol>
+            <li><strong>Diretiva Single:</strong>
+                <div class="code-block">#pragma omp single
+{
+    // Apenas UMA thread cria todas as tasks
+    // Evita criação duplicada
+}</div>
+            </li>
+
+            <li><strong>Captura por Valor:</strong>
+                <div class="code-block">char nome_local[50];  // Cópia local
+strcpy(nome_local, atual->nome_arquivo);
+#pragma omp task firstprivate(nome_local, task_id)
+{
+    // Cada task tem sua própria cópia dos dados
+}</div>
+            </li>
+
+            <li><strong>Sincronização Explícita:</strong>
+                <div class="code-block">#pragma omp taskwait  // Aguarda TODAS as tasks
+// Garante que nenhuma task seja perdida</div>
+            </li>
+        </ol>
+
+        <h2>Visualização do Programa</h2>
+        <img src="tarefa7.png" alt="Execução do programa Tarefa 7" style="width: 100%; max-width: 800px; height: auto; border: 1px solid #ddd; border-radius: 4px; margin: 20px 0;">
+    </div>
+</body>
+
+    <script>
+        // Scroll suave simples
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Página carregada');
+        });
+    </script>
+</body>
+</html>
